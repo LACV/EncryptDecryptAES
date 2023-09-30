@@ -54,6 +54,9 @@ var
 implementation
 
 const
+
+  _key = 'LlaveParaEncryptDecrypt';
+
   { tabla de búsqueda utiliza  el algoritmo AES (Advanced Encryption Standard)
     para la sustitución de bytes durante la etapa de sustitución de SubBytes en la
     encriptación. Esta tabla contiene 256 valores de bytes en representación hexadecimal }
@@ -260,7 +263,7 @@ begin
 
   try
     // Configurar la clave (la clave debe ser de 32 caracteres)
-    KeyString := 'ArrozBolugaLoMejorEnsuMesa';
+    KeyString := _key;
     Key := StringToAESKey(KeyString);
 
     // Expandir la clave
@@ -316,7 +319,7 @@ begin
 
   try
     // Configurar la clave (la clave debe ser de 32 caracteres)
-    KeyString := 'ArrozBolugaLoMejorEnsuMesa';
+    KeyString := _key;
     Key := StringToAESKey(KeyString);
 
     // Expandir la clave
@@ -509,9 +512,9 @@ begin
   Move(KeyBytes[0], Result[0], Sizeof(Result));
 end;
 
-{Esta función toma una cadena de texto KeyString, la convierte en una clave
-AES (TAESKey), asegurándose de que la clave tenga una longitud de 32 bytes y
-luego la devuelve como resultado}
+{ Esta función toma una cadena de texto KeyString, la convierte en una clave
+  AES (TAESKey), asegurándose de que la clave tenga una longitud de 32 bytes y
+  luego la devuelve como resultado }
 procedure TDmoduloED.SubBytes(var State: TAESState);
 var
   i, j: Integer;
@@ -521,7 +524,7 @@ begin
       State[i, j] := Sbox[State[i, j]]
 end;
 
-{Sustituye una palabra de 32 bits con Sbox de AES y retorna el resultado}
+{ Sustituye una palabra de 32 bits con Sbox de AES y retorna el resultado }
 function TDmoduloED.SubWord(W: Cardinal): Cardinal;
 begin
   Result := (Sbox[W shr 24] shl 24) or (Sbox[(W shr 16) and $FF] shl 16) or
