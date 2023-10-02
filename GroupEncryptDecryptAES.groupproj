@@ -1,0 +1,39 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{33204042-C437-48DF-B52C-3CB3431A290F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="EncryptDecryptAES.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Component\EncryptDecryptAES.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="EncryptDecryptAES">
+        <MSBuild Projects="Component\EncryptDecryptAES.dproj"/>
+    </Target>
+    <Target Name="EncryptDecryptAES:Clean">
+        <MSBuild Projects="Component\EncryptDecryptAES.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="EncryptDecryptAES:Make">
+        <MSBuild Projects="Component\EncryptDecryptAES.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="EncryptDecryptAES;EncryptDecryptAES"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="EncryptDecryptAES:Clean;EncryptDecryptAES:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="EncryptDecryptAES:Make;EncryptDecryptAES:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

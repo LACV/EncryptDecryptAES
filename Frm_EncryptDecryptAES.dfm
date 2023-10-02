@@ -23,8 +23,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
     Height = 243
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 344
-    ExplicitHeight = 468
     object LbE: TLabel
       AlignWithMargins = True
       Left = 31
@@ -44,8 +42,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Font.Style = [fsBold]
       ParentFont = False
       WordWrap = True
-      ExplicitLeft = 7
-      ExplicitTop = 412
       ExplicitWidth = 14
     end
     object LbD: TLabel
@@ -67,8 +63,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Font.Style = [fsBold]
       ParentFont = False
       WordWrap = True
-      ExplicitLeft = 7
-      ExplicitTop = 441
       ExplicitWidth = 11
     end
     object BtnGuardar: TButton
@@ -95,9 +89,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       ShowHint = False
       TabOrder = 0
       OnClick = BtnGuardarClick
-      ExplicitLeft = 106
-      ExplicitTop = 85
-      ExplicitWidth = 105
     end
     object EdtPass: TEdit
       AlignWithMargins = True
@@ -119,9 +110,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       ParentFont = False
       TabOrder = 1
       TextHint = 'Digitar Pass'
-      ExplicitLeft = 42
-      ExplicitTop = 46
-      ExplicitWidth = 236
     end
   end
 end
