@@ -15,7 +15,7 @@ type
 function EncryptPassword(const InputPassword, Uniquekey: string): string;
 function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
 
-function calcularHash(const pass, Salt: string): string;
+function CalculateHash(const password, Salt: string): string;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
 
 
@@ -150,22 +150,31 @@ const
     $E3, $C5, $31, $BB, $CC, $1F, $2D, $3B, $52, $6F, $F6, $2E, $89, $F7, $C0,
     $68, $1B, $64, $04, $06, $BF, $83, $38);
 
-function calcularHash(const pass, Salt: string): string;
+{
+  This function calculates a hash using the PBKDF2 algorithm with a given password
+  and salt, and returns the result in hexadecimal format.
+}
+function CalculateHash(const password, Salt: string): string;
 var
-  Hash: THashSHA2;
-
-  SaltBytes, hashBytes: TBytes;
+  hash: THashSHA2;
+  saltBytes, hashBytes: TBytes;
 begin
+  // Convert the salt string to UTF-8 encoded bytes
+  saltBytes := TEncoding.UTF8.GetBytes(salt);
 
-  SaltBytes := TEncoding.UTF8.GetBytes(Salt);
+  try
+    // Calculate the hash using the PBKDF2 algorithm with the given password and salt
+    hashBytes := PBKDF2(password, saltBytes, _Iterations);
 
-  // Calcula el HMAC utilizando la clave secreta generada
-  // hashBytes := Hash.GetHMACAsBytes(pass, Salt, THashSHA2.TSHA2Version.SHA256);
-  hashBytes := PBKDF2(pass, SaltBytes, _Iterations);
-
-  // Convierte los bytes del hash en una representación hexadecimal
-  // Result := BytesToHex(hashBytes);
-  Result := BytesToHexArray(hashBytes);
+    // Convert the hash bytes to a hexadecimal representation
+    Result := BytesToHexArray(hashBytes);
+  except
+    on E: Exception do
+    begin
+      // Handle exceptions and provide a meaningful error message
+      Result := 'Error calculating hash: ' + E.Message;
+    end;
+  end;
 end;
 
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;

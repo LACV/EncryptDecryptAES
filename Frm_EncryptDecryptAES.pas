@@ -56,7 +56,7 @@ uses MEncryptDecryptAES;
 procedure TFrmEncryptDecryptAES.BtnCompararClick(Sender: TObject);
 begin
 
-  EdtSha2.Text := calcularHash(EdtPass2.Text, EdtSalt.Text);
+  EdtSha2.Text := calculateHash(EdtPass2.Text, EdtSalt.Text);
 
   if verifyHash(EdtSha2.Text, EdtSalt.Text, EdtDecrypt.Text) then
   begin
@@ -83,7 +83,7 @@ begin
 
         LbD.Caption := EdtPass.Text;
         EdtSalt.Text := GenerateSalt(32);
-        EdtSha.Text := calcularHash(EdtPass.Text, EdtSalt.Text);
+        EdtSha.Text := calculateHash(EdtPass.Text, EdtSalt.Text);
         EdtKey.Text := GenerateRandomKey(32);
         EdtEncrypt.Text := EncryptPassword(EdtSha.Text, EdtKey.Text);
         EdtDecrypt.Text := BytesToHex(DecryptPassword(EdtEncrypt.Text,
