@@ -4,20 +4,22 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Hash, System.NetEncoding,
-  System.Generics.Collections, vcl.Dialogs;
+
+  System.Generics.Collections, Vcl.Dialogs;
 
 type
   TAESState = Array [0 .. 3, 0 .. 3] of Byte;
   TAESKey = Array [0 .. 7] of Cardinal;
-  TAESExpandedKey = Array [0 .. 59] of Cardinal;
+  TAESExpandedKey = Array [0 .. 59] of Cardinal; // 59
 
   // funciones para encriptar y desencriptar
 function EncryptPassword(const InputPassword, Uniquekey: string): string;
-function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): string;
+function EncryptHash(const InputHash, Uniquekey: string): string;
+function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 
 function CalculateHash(const password, Salt: string): string;
 function verifyHash(const password, storedSalt, storedHash: string): Boolean;
-
 
 // funciones necesarias para encriptar y desencriptar en AES
 
@@ -180,15 +182,12 @@ end;
 function verifyHash(const password, storedSalt, storedHash: string): Boolean;
 var
   calculatedHash: string;
-  saltBytes: TBytes;
-begin
-  // Convert the stored salt from hexadecimal to bytes
-  saltBytes := HexToBytes(storedSalt);
 
-  // try
+begin
+
   // Calculate the hash for the provided password and the stored salt
-  calculatedHash := BytesToHex(PBKDF2(password, saltBytes, PBKDF2_ITERATIONS));
-  showmessage(calculatedHash);
+  calculatedHash := calcularHash(pass, storedSalt);
+
   // Compare the calculated hash with the stored hash
   case calculatedHash = storedHash of
     true:
@@ -196,11 +195,6 @@ begin
     false:
       Result := false;
   end;
-
-  // except
-  // Handle exceptions and return False in case of an error
-  // Result := false;
-  // end;
 end;
 
 {
@@ -246,8 +240,20 @@ var
   i, J, DKLen: Integer;
 begin
   try
-    // Create an instance of the HMAC-SHA-256 hash algorithm
-    HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
+  // Create an instance of the HMAC-SHA-256 hash algorithm
+  HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
+  DKLen := 16;
+  Key := TEncoding.UTF8.GetBytes(Password);
+
+  if Length(Key) > 64 then
+  begin
+    Key := HMACSHA256.GetHMACAsBytes(Key, Salt);
+  end
+  else if Length(Key) < 64 then
+  begin
+    SetLength(Key, 32);
+  end;
+
 
     // Set the desired key length (32 bytes)
     DKLen := 16;
@@ -474,7 +480,7 @@ end;
 {
   Decrypts a password using AES with specific key and algorithm.
 }
-function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): string;
 var
   KeyString: string;
   Key: TAESKey;
@@ -486,7 +492,6 @@ begin
   try
     // Set the key (the key should be 32 characters long)
     KeyString := Uniquekey;
-    // KeyString := _key;
 
     // Convert the key string to an AES key
     Key := StringToAESKey(KeyString);
@@ -522,8 +527,7 @@ begin
       SetLength(OutputBytes, DestStream.Size);
       DestStream.Position := 0;
       DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-
-      Result := OutputBytes;
+      Result := TEncoding.UTF8.GetString(OutputBytes);
     finally
       SourceStream.Free;
       DestStream.Free;
@@ -537,9 +541,62 @@ begin
   end;
 end;
 
+function DecryptHash(const EncryptedHash, Uniquekey: string): string;
+var
+  KeyString: string;
+  Key: TAESKey;
+  ExpandedKey: TAESExpandedKey;
+  InputBytes, OutputBytes: TBytes;
+  State: TAESState;
+  SourceStream, DestStream: TMemoryStream;
+begin
+  // Configurar la clave (la clave debe ser de 32 caracteres)
+  KeyString := Uniquekey;
+
+  Key := StringToAESKey(KeyString);
+
+  // Expandir la clave
+  AESExpandKey(ExpandedKey, Key);
+
+  // Convertir el valor hexadecimal de entrada a bytes
+  InputBytes := HexToBytes(EncryptedHash);
+
+  // Asegurarse de que InputBytes tenga 64 bytes
+  SetLength(InputBytes, 64);
+
+  // Crear streams de memoria para el resultado
+  SourceStream := TMemoryStream.Create;
+  DestStream := TMemoryStream.Create;
+
+  try
+    // Llenar el bloque de entrada con los bytes encriptados
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
+
+    // Desencriptar el bloque de entrada
+    AESDecrypt(State, ExpandedKey);
+    SourceStream.Write(State, SizeOf(State));
+
+    // Copiar el bloque desencriptado al stream de destino
+    SourceStream.Position := 0;
+    DestStream.CopyFrom(SourceStream, SourceStream.Size);
+
+    // Convertir el bloque desencriptado de bytes a cadena hexadecimal
+    SetLength(OutputBytes, DestStream.Size);
+    DestStream.Position := 0;
+    DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
+
+    Result := BytesToHexArray(OutputBytes);
+  finally
+    SourceStream.Free;
+    DestStream.Free;
+  end;
+end;
+
 {
   Encrypts a password with AES and a specific key, and returns it as hexadecimal.
 }
+
 function EncryptPassword(const InputPassword, Uniquekey: string): string;
 var
   KeyString: string;
@@ -603,9 +660,61 @@ begin
   end;
 end;
 
+function EncryptHash(const InputHash, Uniquekey: string): string;
+var
+  KeyString: string;
+  Key: TAESKey;
+  ExpandedKey: TAESExpandedKey;
+  InputBytes, OutputBytes: TBytes;
+  State: TAESState;
+  SourceStream, DestStream: TMemoryStream;
+begin
+  // Configurar la clave (la clave debe ser de 32 caracteres)
+  KeyString := Uniquekey;
+
+  Key := StringToAESKey(KeyString);
+
+  // Expandir la clave
+  AESExpandKey(ExpandedKey, Key);
+
+  // Convertir el valor hexadecimal de entrada a bytes
+  InputBytes := HexToBytes(InputHash);
+
+  // Asegurarse de que InputBytes tenga 64 bytes
+  SetLength(InputBytes, 64);
+
+  // Crear streams de memoria para el resultado
+  SourceStream := TMemoryStream.Create;
+  DestStream := TMemoryStream.Create;
+
+  try
+    // Llenar el bloque de entrada con los bytes encriptados
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
+
+    // Encriptar el bloque de entrada
+    AESEncrypt(State, ExpandedKey);
+    SourceStream.Write(State, SizeOf(State));
+
+    // Copiar el bloque encriptado al stream de destino
+    SourceStream.Position := 0;
+    DestStream.CopyFrom(SourceStream, SourceStream.Size);
+
+    // Convertir el bloque encriptado a una cadena hexadecimal de 64 caracteres
+    SetLength(OutputBytes, DestStream.Size);
+    DestStream.Position := 0;
+    DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
+    Result := BytesToHex(OutputBytes); // Cambio aquí
+  finally
+    SourceStream.Free;
+    DestStream.Free;
+  end;
+end;
+
 {
   Converts a byte array to a hexadecimal string, checking for valid length.
 }
+
 function BytesToHex(const Bytes: TBytes): string;
 const
   HexChars: array [0 .. 15] of Char = '0123456789ABCDEF';
@@ -969,29 +1078,31 @@ end;
 }
 function GenerateRandomKey(length: Integer): string;
 var
-  saltBytes: TBytes;
-  i: Integer;
+  KBytes: TBytes;
+  I: Integer;
+
 begin
   try
-    SetLength(saltBytes, length);
+  SetLength(KBytes, l);
 
-    // Generate a random salt as a byte array
-    for i := 0 to length - 1 do
-      saltBytes[i] := Byte(Random(256));
+  // Generate a random salt as a byte array
+  for I := 0 to l - 1 do
+    KBytes[I] := Byte(Random(256));
 
-    // Substitute each byte of the salt using the Sbox
-    for i := 0 to length - 1 do
-      saltBytes[i] := Sbox[saltBytes[i]];
+  // Substitute each byte of the salt using the Sbox
+  for I := 0 to l - 1 do
+    KBytes[I] := Sbox[KBytes[I]];
 
-    // Convert the bytes to a hexadecimal string
-    Result := BytesToHex(saltBytes);
-  except
+  // Convert the bytes to a hexadecimal string
+  Result := BytesToHex(KBytes);
+   except
     on E: Exception do
     begin
       // Handle exceptions and provide a meaningful error message
       raise Exception.Create('Error in GenerateRandomKey: ' + E.Message);
     end;
   end;
+
 end;
 
 end.

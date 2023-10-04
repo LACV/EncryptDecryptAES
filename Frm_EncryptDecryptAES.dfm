@@ -254,6 +254,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = 46
         ExplicitHeight = 18
       end
       object EdtKey: TEdit
@@ -336,6 +337,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = 87
         ExplicitHeight = 18
       end
       object EdtSalt: TEdit

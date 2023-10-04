@@ -87,20 +87,17 @@ begin
         EdtSalt.Text := GenerateSalt(32);
         EdtSha.Text := calculateHash(EdtPass.Text, EdtSalt.Text);
         EdtKey.Text := GenerateRandomKey(32);
-        EdtEncrypt.Text := EncryptPassword(EdtSha.Text, EdtKey.Text);
-        EdtDecrypt.Text := BytesToHex(DecryptPassword(EdtEncrypt.Text,
-          EdtKey.Text));
+        EdtEncrypt.Text := EncryptHash(EdtSha.Text, EdtKey.Text);
+        EdtDecrypt.Text := DecryptHash(EdtEncrypt.Text, EdtKey.Text);
 
         EdtPass2.Enabled := true;
         BtnComparar.Enabled := true;
         EdtSha2.Enabled := true;
         LbVerificacion.Enabled := true;
 
-        {
-          e := EncryptPassword(EdtPass.Text, EdtKey.Text);
-          ShowMessage('E:=' + EncryptPassword(EdtPass.Text, EdtKey.Text));
-          ShowMessage(' D:=' + TEncoding.UTF8.GetString(DecryptPassword(e,
-          EdtKey.Text))); }
+        e := EncryptPassword(EdtPass.Text, EdtKey.Text);
+        ShowMessage('E:=' + EncryptPassword(EdtPass.Text, EdtKey.Text));
+        ShowMessage(' D:=' + DecryptPassword(e, EdtKey.Text));
 
       end;
   end;
