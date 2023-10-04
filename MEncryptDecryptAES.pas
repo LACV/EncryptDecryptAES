@@ -57,14 +57,12 @@ procedure AESExpandKey(var ExpandedKey: TAESExpandedKey; Key: TAESKey);
 implementation
 
 const
+  _key = 'KeyForEncryptDecrypt'; // Your encryption/decryption key
+  PBKDF2_ITERATIONS = 10000; // Number of iterations
 
-  _key = 'LlaveParaEncryptDecrypt';
-
-  PBKDF2_ITERATIONS = 10000; // Número de iteraciones
-
-  { tabla de búsqueda utiliza  el algoritmo AES (Advanced Encryption Standard)
-    para la sustitución de bytes durante la etapa de sustitución de SubBytes en la
-    encriptación. Esta tabla contiene 256 valores de bytes en representación hexadecimal }
+  { Lookup table used in the AES (Advanced Encryption Standard) algorithm
+    for byte substitution during the SubBytes stage of encryption. This table
+    contains 256 byte values in hexadecimal representation. }
   Sbox: Array [0 .. 255] of Byte = ($63, $7C, $77, $7B, $F2, $6B, $6F, $C5, $30,
     $01, $67, $2B, $FE, $D7, $AB, $76, $CA, $82, $C9, $7D, $FA, $59, $47, $F0,
     $AD, $D4, $A2, $AF, $9C, $A4, $72, $C0, $B7, $FD, $93, $26, $36, $3F, $F7,
@@ -84,10 +82,9 @@ const
     $87, $E9, $CE, $55, $28, $DF, $8C, $A1, $89, $0D, $BF, $E6, $42, $68, $41,
     $99, $2D, $0F, $B0, $54, $BB, $16);
 
-  { tabla de búsqueda utilizada en el algoritmo AES (Advanced Encryption Standard)
-    para la sustitución inversa de bytes durante la etapa de sustitución de InvSubBytes
-    en el proceso de desencriptación. Esta tabla contiene 256 valores de bytes en
-    representación hexadecimal }
+  { Lookup table used in the AES (Advanced Encryption Standard) algorithm
+    for byte substitution during the Inverse SubBytes stage of decryption.
+    This table contains 256 byte values in hexadecimal representation. }
   InvSbox: Array [0 .. 255] of Byte = ($52, $09, $6A, $D5, $30, $36, $A5, $38,
     $BF, $40, $A3, $9E, $81, $F3, $D7, $FB, $7C, $E3, $39, $82, $9B, $2F, $FF,
     $87, $34, $8E, $43, $44, $C4, $DE, $E9, $CB, $54, $7B, $94, $32, $A6, $C2,
@@ -107,9 +104,8 @@ const
     $EB, $BB, $3C, $83, $53, $99, $61, $17, $2B, $04, $7E, $BA, $77, $D6, $26,
     $E1, $69, $14, $63, $55, $21, $0C, $7D);
 
-  { Proporciona una correspondencia entre valores de entrada y valores de salida,
-    se utilizan para acelerar ciertos cálculos o transformaciones en algoritmos
-    criptográficos }
+{ Provides a mapping between input values and output values, used to accelerate
+    certain calculations or transformations in cryptographic algorithms. }
   InvLogTable: Array [0 .. 255] of Byte = ($01, $E5, $4C, $B5, $FB, $9F, $FC,
     $12, $03, $34, $D4, $C4, $16, $BA, $1F, $36, $05, $5C, $67, $57, $3A, $D5,
     $21, $5A, $0F, $E4, $A9, $F9, $4E, $64, $63, $EE, $11, $37, $E0, $10, $D2,
@@ -129,9 +125,8 @@ const
     $22, $6E, $DB, $20, $BF, $43, $51, $52, $66, $B2, $76, $60, $DA, $C5, $F3,
     $F6, $AA, $CD, $9A, $A0, $75, $54, $0E, $01);
 
-  { Proporciona una correspondencia entre valores de entrada y valores de salida,
-    se utilizan para acelerar ciertos cálculos o transformaciones en algoritmos
-    criptográficos }
+ { Provides a mapping between input values and output values, used to accelerate
+    certain calculations or transformations in cryptographic algorithms. }
   LogTable: Array [0 .. 255] of Byte = ($00, $FF, $C8, $08, $91, $10, $D0, $36,
     $5A, $3E, $D8, $43, $99, $77, $FE, $18, $23, $20, $07, $70, $A1, $6C, $0C,
     $7F, $62, $8B, $40, $46, $C7, $4B, $E0, $0E, $EB, $16, $E8, $AD, $CF, $CD,
