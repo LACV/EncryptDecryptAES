@@ -4,16 +4,18 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Hash, System.NetEncoding,
-  System.Generics.Collections;
+  System.Generics.Collections, Vcl.Dialogs;
 
 type
   TAESState = Array [0 .. 3, 0 .. 3] of Byte;
   TAESKey = Array [0 .. 7] of Cardinal;
-  TAESExpandedKey = Array [0 .. 59] of Cardinal;
+  TAESExpandedKey = Array [0 .. 59] of Cardinal; // 59
 
   // funciones para encriptar y desencriptar
 function EncryptPassword(const InputPassword, Uniquekey: string): string;
-function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): string;
+function EncryptHash(const InputHash, Uniquekey: string): string;
+function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 
 function calcularHash(const pass, Salt: string): string;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
@@ -211,7 +213,7 @@ var
   I, J, K, DKLen: Integer;
 begin
   HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
-  DKLen := 32;
+  DKLen := 16;
   Key := TEncoding.UTF8.GetBytes(Password);
 
   if Length(Key) > 64 then
@@ -350,7 +352,7 @@ begin
 end;
 
 { Desencripta contraseña usando AES con clave y algoritmo específicos }
-function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): string;
 var
   KeyString: string;
   Key: TAESKey;
@@ -362,7 +364,6 @@ begin
   try
     // Configurar la clave (la clave debe ser de 32 caracteres)
     KeyString := Uniquekey;
-    // KeyString := _key;
 
     Key := StringToAESKey(KeyString);
 
@@ -393,16 +394,65 @@ begin
       SetLength(OutputBytes, DestStream.Size);
       DestStream.Position := 0;
       DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-      // result := TEncoding.UTF8.GetString(OutputBytes);
-
-      // result := BytesToHexArray(OutputBytes);
-      Result := (OutputBytes)
+      Result := TEncoding.UTF8.GetString(OutputBytes);
     finally
       SourceStream.Free;
       DestStream.Free;
     end;
   finally
     // Liberar recursos si es necesario
+  end;
+end;
+
+function DecryptHash(const EncryptedHash, Uniquekey: string): string;
+var
+  KeyString: string;
+  Key: TAESKey;
+  ExpandedKey: TAESExpandedKey;
+  InputBytes, OutputBytes: TBytes;
+  State: TAESState;
+  SourceStream, DestStream: TMemoryStream;
+begin
+  // Configurar la clave (la clave debe ser de 32 caracteres)
+  KeyString := Uniquekey;
+
+  Key := StringToAESKey(KeyString);
+  ShowMessage('KeyD: ' + KeyString);
+  // Expandir la clave
+  AESExpandKey(ExpandedKey, Key);
+
+  // Convertir el valor hexadecimal de entrada a bytes
+  InputBytes := HexToBytes(EncryptedHash);
+  ShowMessage('HexD: ' + EncryptedHash);
+  // Asegurarse de que InputBytes tenga 64 bytes
+  SetLength(InputBytes, 64);
+
+  // Crear streams de memoria para el resultado
+  SourceStream := TMemoryStream.Create;
+  DestStream := TMemoryStream.Create;
+
+  try
+    // Llenar el bloque de entrada con los bytes encriptados
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
+
+    // Desencriptar el bloque de entrada
+    AESDecrypt(State, ExpandedKey);
+    SourceStream.Write(State, SizeOf(State));
+
+    // Copiar el bloque desencriptado al stream de destino
+    SourceStream.Position := 0;
+    DestStream.CopyFrom(SourceStream, SourceStream.Size);
+
+    // Convertir el bloque desencriptado de bytes a cadena hexadecimal
+    SetLength(OutputBytes, DestStream.Size);
+    DestStream.Position := 0;
+    DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
+    ShowMessage('HexF: ' + BytesToHexArray(OutputBytes[0]));
+    Result := BytesToHexArray(OutputBytes);
+  finally
+    SourceStream.Free;
+    DestStream.Free;
   end;
 end;
 
@@ -460,6 +510,58 @@ begin
     end;
   finally
     // ModuloED.Free;
+  end;
+end;
+
+function EncryptHash(const InputHash, Uniquekey: string): string;
+var
+  KeyString: string;
+  Key: TAESKey;
+  ExpandedKey: TAESExpandedKey;
+  InputBytes, OutputBytes: TBytes;
+  State: TAESState;
+  SourceStream, DestStream: TMemoryStream;
+begin
+  // Configurar la clave (la clave debe ser de 32 caracteres)
+  KeyString := Uniquekey;
+
+  Key := StringToAESKey(KeyString);
+  ShowMessage('key: ' + KeyString);
+  // Expandir la clave
+  AESExpandKey(ExpandedKey, Key);
+
+  ShowMessage('Hex: ' + InputHash);
+  // Convertir el valor hexadecimal de entrada a bytes
+  InputBytes := HexToBytes(InputHash);
+
+  // Asegurarse de que InputBytes tenga 64 bytes
+  SetLength(InputBytes, 64);
+
+  // Crear streams de memoria para el resultado
+  SourceStream := TMemoryStream.Create;
+  DestStream := TMemoryStream.Create;
+
+  try
+    // Llenar el bloque de entrada con los bytes encriptados
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
+
+    // Encriptar el bloque de entrada
+    AESEncrypt(State, ExpandedKey);
+    SourceStream.Write(State, SizeOf(State));
+
+    // Copiar el bloque encriptado al stream de destino
+    SourceStream.Position := 0;
+    DestStream.CopyFrom(SourceStream, SourceStream.Size);
+
+    // Convertir el bloque encriptado a una cadena hexadecimal de 64 caracteres
+    SetLength(OutputBytes, DestStream.Size);
+    DestStream.Position := 0;
+    DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
+    Result := BytesToHex(OutputBytes); // Cambio aquí
+  finally
+    SourceStream.Free;
+    DestStream.Free;
   end;
 end;
 
@@ -675,22 +777,22 @@ end;
 
 function GenerateRandomKey(l: Integer): string;
 var
-  SaltBytes: TBytes;
+  KBytes: TBytes;
   I: Integer;
 begin
 
-  SetLength(SaltBytes, l);
+  SetLength(KBytes, l);
 
   // Genera una sal aleatoria en forma de matriz de bytes
   for I := 0 to l - 1 do
-    SaltBytes[I] := Byte(Random(256));
+    KBytes[I] := Byte(Random(256));
 
   // Convierte la matriz de bytes utilizando Sbox
   for I := 0 to l - 1 do
-    SaltBytes[I] := Sbox[SaltBytes[I]];
+    KBytes[I] := Sbox[KBytes[I]];
 
   // Convierte los bytes en una cadena hexadecimal
-  Result := BytesToHex(SaltBytes);
+  Result := BytesToHex(KBytes);
 end;
 
 end.
