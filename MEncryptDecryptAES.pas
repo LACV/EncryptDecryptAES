@@ -20,7 +20,6 @@ function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 function calcularHash(const pass, Salt: string): string;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
 
-
 // funciones necesarias para encriptar y desencriptar en AES
 
 // Hash - SHA256(GenerateSalt)
@@ -173,16 +172,19 @@ end;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
 var
   calculatedHash: string;
-  SaltBytes: TBytes;
 begin
-  // Convierte la sal almacenada de hexadecimal a bytes
-  SaltBytes := HexToBytes(storedSalt);
 
   // Calcula el hash para la contraseña proporcionada y la sal almacenada
-  calculatedHash := BytesToHex(PBKDF2(pass, SaltBytes, _Iterations));
+  calculatedHash := calcularHash(pass, storedSalt);
 
   // Compara el hash calculado con el hash almacenado
-  Result := calculatedHash = storedHash;
+  case calculatedHash = storedHash of
+    true:
+      Result := true;
+    false:
+      Result := false;
+  end;
+
 end;
 
 function GenerateSalt(SaltLength: Integer): string;
@@ -417,13 +419,13 @@ begin
   KeyString := Uniquekey;
 
   Key := StringToAESKey(KeyString);
-  ShowMessage('KeyD: ' + KeyString);
+
   // Expandir la clave
   AESExpandKey(ExpandedKey, Key);
 
   // Convertir el valor hexadecimal de entrada a bytes
   InputBytes := HexToBytes(EncryptedHash);
-  ShowMessage('HexD: ' + EncryptedHash);
+
   // Asegurarse de que InputBytes tenga 64 bytes
   SetLength(InputBytes, 64);
 
@@ -448,7 +450,7 @@ begin
     SetLength(OutputBytes, DestStream.Size);
     DestStream.Position := 0;
     DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-    ShowMessage('HexF: ' + BytesToHexArray(OutputBytes[0]));
+
     Result := BytesToHexArray(OutputBytes);
   finally
     SourceStream.Free;
@@ -526,11 +528,10 @@ begin
   KeyString := Uniquekey;
 
   Key := StringToAESKey(KeyString);
-  ShowMessage('key: ' + KeyString);
+
   // Expandir la clave
   AESExpandKey(ExpandedKey, Key);
 
-  ShowMessage('Hex: ' + InputHash);
   // Convertir el valor hexadecimal de entrada a bytes
   InputBytes := HexToBytes(InputHash);
 
