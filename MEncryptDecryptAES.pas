@@ -1,11 +1,10 @@
-unit MEncryptDecryptAES;
+﻿unit MEncryptDecryptAES;
 
 interface
 
 uses
   System.SysUtils, System.Classes, System.Hash, System.NetEncoding,
   System.Generics.Collections, Vcl.Dialogs;
-
 
 type
   TAESState = Array [0 .. 3, 0 .. 3] of Byte;
@@ -182,11 +181,10 @@ end;
 function verifyHash(const password, storedSalt, storedHash: string): Boolean;
 var
   calculatedHash: string;
-
 begin
 
   // Calcula el hash para la contrase�a proporcionada y la sal almacenada
-  calculatedHash := calcularHash(pass, storedSalt);
+  calculatedHash := CalculateHash(password, storedSalt);
 
   // Compara el hash calculado con el hash almacenado
   case calculatedHash = storedHash of
@@ -196,23 +194,6 @@ begin
       Result := false;
   end;
 
-
-  saltBytes: TBytes;
-begin
-  // Convert the stored salt from hexadecimal to bytes
-  saltBytes := HexToBytes(storedSalt);
-
-  // try
-  // Calculate the hash for the provided password and the stored salt
-  calculatedHash := BytesToHex(PBKDF2(password, saltBytes, PBKDF2_ITERATIONS));
-  showmessage(calculatedHash);
-  // Compare the calculated hash with the stored hash
-  case calculatedHash = storedHash of
-    true:
-      Result := true;
-    false:
-      Result := false;
-  end;
 end;
 
 {
@@ -257,21 +238,20 @@ var
   Key, InnerPad, OuterPad, SaltedPassword, U, T, DK: TBytes;
   i, J, DKLen: Integer;
 begin
+  try
+    // Create an instance of the HMAC-SHA-256 hash algorithm
+    HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
+    DKLen := 16;
+    Key := TEncoding.UTF8.GetBytes(password);
 
-// Create an instance of the HMAC-SHA-256 hash algorithm
-  HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
-  DKLen := 16;
-  Key := TEncoding.UTF8.GetBytes(Password);
-
-  if Length(Key) > 64 then
-  begin
-    Key := HMACSHA256.GetHMACAsBytes(Key, Salt);
-  end
-  else if Length(Key) < 64 then
-  begin
-    SetLength(Key, 32);
-  end;
-
+    if length(Key) > 64 then
+    begin
+      Key := HMACSHA256.GetHMACAsBytes(Key, Salt);
+    end
+    else if length(Key) < 64 then
+    begin
+      SetLength(Key, 32);
+    end;
 
     // Set the desired key length (32 bytes)
     DKLen := 16;
@@ -495,7 +475,6 @@ begin
   end;
 end;
 
-
 {
   Decrypts a password using AES with specific key and algorithm.
 }
@@ -563,7 +542,6 @@ begin
   end;
 end;
 
-
 function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 var
   KeyString: string;
@@ -594,7 +572,7 @@ begin
   try
     // Llenar el bloque de entrada con los bytes encriptados
     FillChar(State, SizeOf(State), 0);
-    Move(InputBytes[0], State, Length(InputBytes));
+    Move(InputBytes[0], State, length(InputBytes));
 
     // Desencriptar el bloque de entrada
     AESDecrypt(State, ExpandedKey);
@@ -683,7 +661,6 @@ begin
   end;
 end;
 
-
 function EncryptHash(const InputHash, Uniquekey: string): string;
 var
   KeyString: string;
@@ -714,7 +691,7 @@ begin
   try
     // Llenar el bloque de entrada con los bytes encriptados
     FillChar(State, SizeOf(State), 0);
-    Move(InputBytes[0], State, Length(InputBytes));
+    Move(InputBytes[0], State, length(InputBytes));
 
     // Encriptar el bloque de entrada
     AESEncrypt(State, ExpandedKey);
@@ -1102,27 +1079,22 @@ end;
 }
 function GenerateRandomKey(length: Integer): string;
 var
-
   KBytes: TBytes;
-  I: Integer;
-
+  i: Integer;
 begin
   try
-    SetLength(saltBytes, length);
+    SetLength(KBytes, length);
 
+    // Generate a random salt as a byte array
+    for i := 0 to length - 1 do
+      KBytes[i] := Byte(Random(256));
 
-  SetLength(KBytes, l);
+    // Substitute each byte of the salt using the Sbox
+    for i := 0 to length - 1 do
+      KBytes[i] := Sbox[KBytes[i]];
 
- // Generate a random salt as a byte array
-  for I := 0 to l - 1 do
-    KBytes[I] := Byte(Random(256));
-
-  // Substitute each byte of the salt using the Sbox
-  for I := 0 to l - 1 do
-    KBytes[I] := Sbox[KBytes[I]];
-
-  // Convert the bytes to a hexadecimal string
-  Result := BytesToHex(KBytes);
+    // Convert the bytes to a hexadecimal string
+    Result := BytesToHex(KBytes);
 
   except
     on E: Exception do
