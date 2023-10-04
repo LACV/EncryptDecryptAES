@@ -12,7 +12,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
+  OldCreateOrder = True
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
@@ -255,6 +255,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         ParentFont = False
         WordWrap = True
         ExplicitLeft = 46
+
         ExplicitHeight = 18
       end
       object EdtKey: TEdit
@@ -337,7 +338,9 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+
         ExplicitLeft = 87
+
         ExplicitHeight = 18
       end
       object EdtSalt: TEdit
