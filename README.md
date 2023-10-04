@@ -1,5 +1,3 @@
-Creating a `readme.md` file is a crucial step to help others understand and use your project effectively. Here's a descriptive `readme.md` for your project:
-
 ```markdown
 # AES Encryption and Decryption Library
 
