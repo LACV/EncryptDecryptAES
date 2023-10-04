@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Hash, System.NetEncoding,
-  System.Generics.Collections;
+  System.Generics.Collections, vcl.Dialogs;
 
 type
   TAESState = Array [0 .. 3, 0 .. 3] of Byte;
@@ -104,7 +104,7 @@ const
     $EB, $BB, $3C, $83, $53, $99, $61, $17, $2B, $04, $7E, $BA, $77, $D6, $26,
     $E1, $69, $14, $63, $55, $21, $0C, $7D);
 
-{ Provides a mapping between input values and output values, used to accelerate
+  { Provides a mapping between input values and output values, used to accelerate
     certain calculations or transformations in cryptographic algorithms. }
   InvLogTable: Array [0 .. 255] of Byte = ($01, $E5, $4C, $B5, $FB, $9F, $FC,
     $12, $03, $34, $D4, $C4, $16, $BA, $1F, $36, $05, $5C, $67, $57, $3A, $D5,
@@ -125,7 +125,7 @@ const
     $22, $6E, $DB, $20, $BF, $43, $51, $52, $66, $B2, $76, $60, $DA, $C5, $F3,
     $F6, $AA, $CD, $9A, $A0, $75, $54, $0E, $01);
 
- { Provides a mapping between input values and output values, used to accelerate
+  { Provides a mapping between input values and output values, used to accelerate
     certain calculations or transformations in cryptographic algorithms. }
   LogTable: Array [0 .. 255] of Byte = ($00, $FF, $C8, $08, $91, $10, $D0, $36,
     $5A, $3E, $D8, $43, $99, $77, $FE, $18, $23, $20, $07, $70, $A1, $6C, $0C,
@@ -185,17 +185,22 @@ begin
   // Convert the stored salt from hexadecimal to bytes
   saltBytes := HexToBytes(storedSalt);
 
-  try
-    // Calculate the hash for the provided password and the stored salt
-    calculatedHash := BytesToHex(PBKDF2(password, saltBytes,
-      PBKDF2_ITERATIONS));
-
-    // Compare the calculated hash with the stored hash
-    Result := calculatedHash = storedHash;
-  except
-    // Handle exceptions and return False in case of an error
-    Result := False;
+  // try
+  // Calculate the hash for the provided password and the stored salt
+  calculatedHash := BytesToHex(PBKDF2(password, saltBytes, PBKDF2_ITERATIONS));
+  showmessage(calculatedHash);
+  // Compare the calculated hash with the stored hash
+  case calculatedHash = storedHash of
+    true:
+      Result := true;
+    false:
+      Result := false;
   end;
+
+  // except
+  // Handle exceptions and return False in case of an error
+  // Result := false;
+  // end;
 end;
 
 {
@@ -245,18 +250,18 @@ begin
     HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
 
     // Set the desired key length (32 bytes)
-    DKLen := 32;
+    DKLen := 16;
 
     // Convert the password to bytes using UTF-8 encoding
     Key := TEncoding.UTF8.GetBytes(password);
 
     // If the key length is greater than 64 bytes, hash it with the salt
-    if Length(Key) > 64 then
+    if length(Key) > 64 then
     begin
       Key := HMACSHA256.GetHMACAsBytes(Key, Salt);
     end
     // If the key length is less than 64 bytes, pad it with zeros
-    else if Length(Key) < 64 then
+    else if length(Key) < 64 then
     begin
       SetLength(Key, 64);
     end;
@@ -271,7 +276,7 @@ begin
     end;
 
     // Append an integer to the salt for the first HMAC iteration
-    SetLength(Salt, Length(Salt) + SizeOf(Integer));
+    SetLength(Salt, length(Salt) + SizeOf(Integer));
 
     // Initial HMAC computation
     T := HMACSHA256.GetHMACAsBytes(InnerPad, Salt);
@@ -449,10 +454,10 @@ var
 begin
   try
     // Initialize the result string with twice the length of the input bytes
-    SetLength(Result, Length(Bytes) * 2);
+    SetLength(Result, length(Bytes) * 2);
 
     // Convert each byte into a hexadecimal representation
-    for i := 0 to Length(Bytes) - 1 do
+    for i := 0 to length(Bytes) - 1 do
     begin
       Result[i * 2 + 1] := HexChars[Bytes[i] shr 4];
       Result[i * 2 + 2] := HexChars[Bytes[i] and $0F];
@@ -496,7 +501,7 @@ begin
     FillChar(State, SizeOf(State), 0);
 
     // Copy the input bytes to the state
-    Move(InputBytes[0], State, Length(InputBytes));
+    Move(InputBytes[0], State, length(InputBytes));
 
     // Create memory streams for the result
     SourceStream := TMemoryStream.Create;
@@ -562,7 +567,7 @@ begin
     FillChar(State, SizeOf(State), 0);
 
     // Copy the input bytes to the state
-    Move(InputBytes[0], State, Length(InputBytes));
+    Move(InputBytes[0], State, length(InputBytes));
 
     // Create memory streams for the result
     SourceStream := TMemoryStream.Create;
@@ -609,10 +614,10 @@ var
 begin
   try
     // Initialize the result string with twice the length of the input bytes
-    SetLength(Result, Length(Bytes) * 2);
+    SetLength(Result, length(Bytes) * 2);
 
     // Convert each byte into a hexadecimal representation
-    for i := 0 to Length(Bytes) - 1 do
+    for i := 0 to length(Bytes) - 1 do
     begin
       Result[i * 2 + 1] := HexChars[Byte(Bytes[i]) shr 4];
       Result[i * 2 + 2] := HexChars[Byte(Bytes[i]) and $F];
@@ -638,13 +643,13 @@ var
 begin
   try
     // Ensure that the length of the hexadecimal string is even
-    if Length(hex) mod 2 <> 0 then
+    if length(hex) mod 2 <> 0 then
       raise Exception.Create('The hexadecimal string must have an even length');
 
     // Initialize a byte array with half the length of the hexadecimal string
-    SetLength(utf8Bytes, Length(hex) div 2);
+    SetLength(utf8Bytes, length(hex) div 2);
 
-    for i := 1 to Length(hex) div 2 do
+    for i := 1 to length(hex) div 2 do
     begin
       // Extract two characters from the hexadecimal string
       hexByte := Copy(hex, (i - 1) * 2 + 1, 2);
@@ -673,13 +678,13 @@ var
 begin
   try
     // Ensure that the length of the hexadecimal string is even
-    if Length(hex) mod 2 <> 0 then
+    if length(hex) mod 2 <> 0 then
       raise Exception.Create('Invalid hexadecimal string length');
 
     // Initialize a byte array with half the length of the hexadecimal string
-    SetLength(Result, Length(hex) div 2);
+    SetLength(Result, length(hex) div 2);
 
-    for i := 1 to Length(hex) div 2 do
+    for i := 1 to length(hex) div 2 do
       Result[i - 1] := StrToInt('$' + Copy(hex, (i - 1) * 2 + 1, 2));
   except
     on E: Exception do
@@ -867,17 +872,17 @@ end;
 }
 procedure ShiftRows(var State: TAESState);
 var
-  i, j, k: Integer;
+  i, J, k: Integer;
 begin
   try
-    for j := 1 to 3 do
-      for i := j downto 1 do
+    for J := 1 to 3 do
+      for i := J downto 1 do
       begin
-        k := State[0, j];
-        State[0, j] := State[1, j];
-        State[1, j] := State[2, j];
-        State[2, j] := State[3, j];
-        State[3, j] := k;
+        k := State[0, J];
+        State[0, J] := State[1, J];
+        State[1, J] := State[2, J];
+        State[2, J] := State[3, J];
+        State[3, J] := k;
       end;
   except
     on E: Exception do
@@ -898,7 +903,7 @@ var
   i: Integer;
 begin
   try
-    KeyLength := Length(KeyString);
+    KeyLength := length(KeyString);
     SetLength(KeyBytes, KeyLength);
 
     // Convert the string into bytes
@@ -906,7 +911,7 @@ begin
       KeyBytes[i - 1] := Ord(KeyString[i]);
 
     // Fill the key if necessary (it should be 32 bytes)
-    while Length(KeyBytes) < 32 do
+    while length(KeyBytes) < 32 do
       KeyBytes := KeyBytes + KeyBytes;
 
     // Copy the first 32 bytes as the key
@@ -920,19 +925,18 @@ begin
   end;
 end;
 
-
 {
   This procedure performs the SubBytes operation on the AES state.
   It substitutes each byte in the state with its corresponding value from the Sbox.
 }
 procedure SubBytes(var State: TAESState);
 var
-  i, j: Integer;
+  i, J: Integer;
 begin
   try
     for i := 0 to 3 do
-      for j := 0 to 3 do
-        State[i, j] := Sbox[State[i, j]];
+      for J := 0 to 3 do
+        State[i, J] := Sbox[State[i, J]];
   except
     on E: Exception do
     begin
@@ -949,10 +953,8 @@ function SubWord(W: Cardinal): Cardinal;
 begin
   try
     // Substitute each byte of the 32-bit word using the Sbox
-    Result := (Sbox[W shr 24] shl 24) or
-              (Sbox[(W shr 16) and $FF] shl 16) or
-              (Sbox[(W shr 8) and $FF] shl 8) or
-              Sbox[W and $FF];
+    Result := (Sbox[W shr 24] shl 24) or (Sbox[(W shr 16) and $FF] shl 16) or
+      (Sbox[(W shr 8) and $FF] shl 8) or Sbox[W and $FF];
   except
     on E: Exception do
     begin

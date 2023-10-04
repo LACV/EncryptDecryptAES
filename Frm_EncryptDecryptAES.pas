@@ -54,11 +54,13 @@ implementation
 uses MEncryptDecryptAES;
 
 procedure TFrmEncryptDecryptAES.BtnCompararClick(Sender: TObject);
+var
+  v: boolean;
 begin
 
   EdtSha2.Text := calculateHash(EdtPass2.Text, EdtSalt.Text);
 
-  if verifyHash(EdtSha2.Text, EdtSalt.Text, EdtDecrypt.Text) then
+  if verifyHash(EdtPass2.Text, EdtSalt.Text, EdtDecrypt.Text) then
   begin
     LbVerificacion.Caption := 'true';
   end
