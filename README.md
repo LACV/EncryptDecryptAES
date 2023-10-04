@@ -1,59 +1,92 @@
-EncryptDecryptAES
+Creating a `readme.md` file is a crucial step to help others understand and use your project effectively. Here's a descriptive `readme.md` for your project:
 
+```markdown
+# AES Encryption and Decryption Library
 
-AddRoundKey
-Este procedimiento realiza una operación XOR entre el estado y una clave de ronda en un algoritmo de cifrado, aumentando la seguridad del proceso.
+This library provides a simple implementation of Advanced Encryption Standard (AES) encryption and decryption in Delphi. AES is a widely used symmetric encryption algorithm for securing data. This readme will guide you on how to use this library in your Delphi projects.
 
-AESDecrypt
-En 14 rondas, este procedimiento revierte la encriptación AES. Comienza deshaciendo las operaciones realizadas durante la encriptación, incluyendo desplazamientos, sustituciones y mezclas de columnas.
+## Features
 
-AESEncrypt
-Este procedimiento encripta datos en 14 rondas, aplicando sustituciones, desplazamientos y mezclas de columnas en cada iteración. Es la parte central de la encriptación AES.
+- AES encryption and decryption.
+- Password-based key derivation using PBKDF2.
+- Hexadecimal encoding and decoding.
+- Key generation and management.
 
-AESExpandKey
-Se encarga de expandir la clave de cifrado AES en un conjunto de subclaves para su uso en las rondas de cifrado. Garantiza que la clave esté lista para su aplicación en cada ronda.
+## Getting Started
 
-BytesToHex
-Esta función toma un array de bytes y lo convierte en una representación hexadecimal, útil para convertir datos binarios en una forma legible.
+To use this library in your Delphi project, follow these steps:
 
-DecryptPassword
-Utilizando AES y una clave específica, este procedimiento desencripta una contraseña previamente cifrada, devolviéndola en su formato original.
+1. **Include the Unit:** Include the `MEncryptDecryptAES` unit in your project's `uses` clause.
 
-EncryptPassword
-Este procedimiento toma una contraseña en texto claro y la encripta mediante AES, devolviendo el resultado en formato hexadecimal, lo que es común en aplicaciones de seguridad.
+2. **Encryption and Decryption:**
 
-HexToBytes
-Convierte una cadena hexadecimal en un array de bytes. Útil para revertir la operación de BytesToHex, recuperando datos binarios a partir de una representación hexadecimal.
+   - Use the `EncryptPassword` function to encrypt a password.
+   - Use the `DecryptPassword` function to decrypt an encrypted password.
 
-InvMixColumns
-Este procedimiento deshace la transformación "MixColumns" en AES. Revirtiendo la mezcla de columnas en el estado, restaura la disposición original de los datos.
+   Example:
+   ```delphi
+   var
+     EncryptedPassword, DecryptedPassword: string;
+   begin
+     EncryptedPassword := EncryptPassword('MySecretPassword', 'MyEncryptionKey');
+     DecryptedPassword := DecryptPassword(EncryptedPassword, 'MyEncryptionKey');
+   end;
+   ```
 
-InvShiftRows
-En el algoritmo AES, este procedimiento realiza el desplazamiento inverso de las filas en el estado, lo que es necesario para deshacer el proceso de encriptación.
+3. **Hashing:**
 
-InvSubBytes
-Realiza la sustitución inversa de bytes en el estado utilizando la tabla InvSbox del algoritmo AES, deshaciendo la sustitución original.
+   - Use the `CalculateHash` function to calculate a hash for password storage.
+   - Use the `verifyHash` function to verify a stored hash.
 
-MixColumns
-Este procedimiento ejecuta la operación de mezcla de columnas en el estado del cifrado AES. Multiplica cada columna por una matriz específica para asegurar la confidencialidad de los datos.
+   Example:
+   ```delphi
+   var
+     Hash, StoredSalt, StoredHash: string;
+     IsPasswordValid: Boolean;
+   begin
+     StoredSalt := GenerateSalt(16);
+     Hash := CalculateHash('MySecretPassword', StoredSalt);
+     // Store 'Hash' and 'StoredSalt' securely.
+     
+     // Later, when verifying a password:
+     IsPasswordValid := verifyHash('MySecretPassword', StoredSalt, StoredHash);
+   end;
+   ```
 
-Mult
-Multiplica bytes en GF(256) usando tablas LogTable e InvLogTable en AES. Esta operación es fundamental para las transformaciones en AES.
+4. **Key Generation:**
 
-RCon
-Genera valores Rcon para expandir claves AES utilizando multiplicación en GF(256). Estos valores son críticos para garantizar la seguridad en las rondas de cifrado.
+   - Use the `GenerateRandomKey` function to generate a random encryption key.
+   
+   Example:
+   ```delphi
+   var
+     RandomKey: string;
+   begin
+     RandomKey := GenerateRandomKey(32); // Generate a 32-byte key (256 bits).
+   end;
+   ```
 
-RotWord
-Rota una palabra de 32 bits (Cardinal) 8 bits hacia la izquierda. Esta operación es necesaria para las transformaciones en AES.
+## Usage Notes
 
-ShiftRows
-Realiza el desplazamiento de filas en una matriz de estado en el contexto del algoritmo de cifrado AES. Este procedimiento es clave para el proceso de encriptación.
+- Ensure that you handle encryption keys securely, as they are critical for both encryption and decryption.
+- Always store and manage salts and hashes securely when handling passwords.
 
-StringToAESKey
-Convierte una cadena de texto en una clave AES, asegurando que la clave tenga una longitud de 32 bytes. Esto es necesario para aplicar la encriptación de manera efectiva.
+## License
 
-SubBytes
-Realiza la sustitución de bytes en el estado utilizando la tabla Sbox en el algoritmo AES. Esta operación es parte integral del proceso de encriptación.
+-
 
-SubWord
-Sustituye una palabra de 32 bits con Sbox de AES y retorna el resultado. Esta operación es esencial para la seguridad en AES.
+## Acknowledgments
+
+This library is based on the AES encryption algorithm and PBKDF2 key derivation.
+
+For more details on the implementation and the algorithm used, please refer to the source code in `MEncryptDecryptAES.pas`.
+
+## Contributing
+
+If you want to contribute to this project, please feel free to create a pull request or open an issue.
+
+---
+
+Enjoy using this AES encryption and decryption library in your Delphi projects!
+```
+
