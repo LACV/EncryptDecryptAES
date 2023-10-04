@@ -3,7 +3,8 @@ unit MEncryptDecryptAES;
 interface
 
 uses
-  System.SysUtils, System.Classes, System.Hash;
+  System.SysUtils, System.Classes, System.Hash, System.NetEncoding,
+  System.Generics.Collections;
 
 type
   TAESState = Array [0 .. 3, 0 .. 3] of Byte;
@@ -11,10 +12,21 @@ type
   TAESExpandedKey = Array [0 .. 59] of Cardinal;
 
   // funciones para encriptar y desencriptar
-function EncryptPassword(const InputPassword: string): string;
-function DecryptPassword(const EncryptedPassword: string): string;
+function EncryptPassword(const InputPassword, Uniquekey: string): string;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
+
+function calcularHash(const pass, Salt: string): string;
+function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
+
 
 // funciones necesarias para encriptar y desencriptar en AES
+
+// Hash - SHA256(GenerateSalt)
+function BytesToHex(const Bytes: TBytes): string;
+function HexToUTF8(const hex: string): string;
+function GenerateSalt(SaltLength: Integer): string;
+function PBKDF2(const Password: string; Salt: TBytes;
+  Iterations: Integer): TBytes;
 
 // AES Encrypt (SubBytes,ShiftRows,MixColumns,AddRoundKey,BytesToHex)
 procedure AESEncrypt(var State: TAESState; ExpandedKey: TAESExpandedKey);
@@ -22,12 +34,13 @@ procedure SubBytes(var State: TAESState);
 procedure ShiftRows(var State: TAESState);
 procedure MixColumns(var State: TAESState);
 procedure InvMixColumns(var State: TAESState);
+function BytesToHexArray(const Bytes: array of Byte): string;
 
 // AES Decrypt(AESDecrypt,InvShiftRows,InvSubBytes,HexToBytes)
 procedure AESDecrypt(var State: TAESState; ExpandedKey: TAESExpandedKey);
 procedure InvShiftRows(var State: TAESState);
 procedure InvSubBytes(var State: TAESState);
-function HexToBytes(const Hex: string): TBytes;
+function HexToBytes(const hex: string): TBytes;
 
 // Uso General
 function GenerateRandomKey(l: Integer): string;
@@ -46,6 +59,7 @@ implementation
 const
 
   _key = 'LlaveParaEncryptDecrypt';
+  _Iterations = 10000; // Número de iteraciones
 
   { tabla de búsqueda utiliza  el algoritmo AES (Advanced Encryption Standard)
     para la sustitución de bytes durante la etapa de sustitución de SubBytes en la
@@ -136,22 +150,124 @@ const
     $E3, $C5, $31, $BB, $CC, $1F, $2D, $3B, $52, $6F, $F6, $2E, $89, $F7, $C0,
     $68, $1B, $64, $04, $06, $BF, $83, $38);
 
-  { Este procedimiento aplica una operación XOR entre el estado y una clave de
-    ronda en un algoritmo de cifrado, añadiendo seguridad. }
+function calcularHash(const pass, Salt: string): string;
+var
+  Hash: THashSHA2;
+
+  SaltBytes, hashBytes: TBytes;
+begin
+
+  SaltBytes := TEncoding.UTF8.GetBytes(Salt);
+
+  // Calcula el HMAC utilizando la clave secreta generada
+  // hashBytes := Hash.GetHMACAsBytes(pass, Salt, THashSHA2.TSHA2Version.SHA256);
+  hashBytes := PBKDF2(pass, SaltBytes, _Iterations);
+
+  // Convierte los bytes del hash en una representación hexadecimal
+  // Result := BytesToHex(hashBytes);
+  Result := BytesToHexArray(hashBytes);
+end;
+
+function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
+var
+  calculatedHash: string;
+  SaltBytes: TBytes;
+begin
+  // Convierte la sal almacenada de hexadecimal a bytes
+  SaltBytes := HexToBytes(storedSalt);
+
+  // Calcula el hash para la contraseña proporcionada y la sal almacenada
+  calculatedHash := BytesToHex(PBKDF2(pass, SaltBytes, _Iterations));
+
+  // Compara el hash calculado con el hash almacenado
+  Result := calculatedHash = storedHash;
+end;
+
+function GenerateSalt(SaltLength: Integer): string;
+var
+  SaltBytes: TBytes;
+  I: Integer;
+begin
+  SetLength(SaltBytes, SaltLength);
+
+  // Genera una sal aleatoria en forma de matriz de bytes
+  for I := 0 to SaltLength - 1 do
+    SaltBytes[I] := Byte(Random(256));
+
+  // Convierte la matriz de bytes utilizando Sbox
+  for I := 0 to SaltLength - 1 do
+    SaltBytes[I] := Sbox[SaltBytes[I]];
+
+  // Convierte los bytes en una cadena hexadecimal
+  Result := BytesToHex(SaltBytes);
+end;
+
+// (Password-Based Key Derivation Function 2 con HMAC-SHA-256)
+function PBKDF2(const Password: string; Salt: TBytes;
+  Iterations: Integer): TBytes;
+var
+  HMACSHA256: THashSHA2;
+  Key, InnerPad, OuterPad, SaltedPassword, U, T, DK: TBytes;
+  I, J, K, DKLen: Integer;
+begin
+  HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
+  DKLen := 32;
+  Key := TEncoding.UTF8.GetBytes(Password);
+
+  if Length(Key) > 64 then
+  begin
+    Key := HMACSHA256.GetHMACAsBytes(Key, Salt);
+  end
+  else if Length(Key) < 64 then
+  begin
+    SetLength(Key, 32);
+  end;
+
+  InnerPad := Key;
+  OuterPad := Key;
+  for I := 0 to High(InnerPad) do
+  begin
+    InnerPad[I] := InnerPad[I] xor $36;
+    OuterPad[I] := OuterPad[I] xor $5C;
+  end;
+
+  SetLength(Salt, Length(Salt) + SizeOf(Integer));
+  T := HMACSHA256.GetHMACAsBytes(InnerPad, Salt);
+
+  for I := 1 to Iterations - 1 do
+  begin
+    U := HMACSHA256.GetHMACAsBytes(InnerPad, T);
+    for J := 0 to High(U) do
+    begin
+      T[J] := T[J] xor U[J];
+    end;
+  end;
+
+  SetLength(DK, DKLen);
+  for I := 0 to High(DK) do
+  begin
+    DK[I] := T[I];
+  end;
+
+  Result := DK;
+end;
+
+{ Este procedimiento aplica una operación XOR entre el estado y una clave de
+  ronda en un algoritmo de cifrado, añadiendo seguridad. }
 procedure AddRoundKey(var State: TAESState; ExpandedKey: TAESExpandedKey;
   Round: Integer);
 var
-  i: Integer;
+  I: Integer;
   W: Cardinal;
 begin
 
-  for i := 0 to 3 do
+  for I := 0 to 3 do
   begin
-    W := ExpandedKey[(Round * 4) + i];
-    State[i, 0] := State[i, 0] XOR ((W shr 24) and $FF);
-    State[i, 1] := State[i, 1] XOR ((W shr 16) and $FF);
-    State[i, 2] := State[i, 2] XOR ((W shr 8) and $FF);
-    State[i, 3] := State[i, 3] XOR (W and $FF);
+    W := ExpandedKey[(Round * 4) + I];
+    State[I, 0] := State[I, 0] XOR ((W shr 24) and $FF);
+    State[I, 1] := State[I, 1] XOR ((W shr 16) and $FF);
+    State[I, 2] := State[I, 2] XOR ((W shr 8) and $FF);
+    State[I, 3] := State[I, 3] XOR (W and $FF);
   end;
 end;
 
@@ -199,42 +315,42 @@ end;
   para su uso en las rondas de cifrado }
 procedure AESExpandKey(var ExpandedKey: TAESExpandedKey; Key: TAESKey);
 var
-  i: Integer;
+  I: Integer;
   Temp: Cardinal;
 begin
 
-  FillChar(ExpandedKey, Sizeof(ExpandedKey), #0);
-  for i := 0 to 7 do
-    ExpandedKey[i] := Key[i];
-  for i := 8 to 59 do
+  FillChar(ExpandedKey, SizeOf(ExpandedKey), #0);
+  for I := 0 to 7 do
+    ExpandedKey[I] := Key[I];
+  for I := 8 to 59 do
   begin
-    Temp := ExpandedKey[i - 1];
-    if (i mod 8 = 0) then
-      Temp := SubWord(RotWord(Temp)) XOR RCon(i div 8)
-    else if (i mod 8 = 4) then
+    Temp := ExpandedKey[I - 1];
+    if (I mod 8 = 0) then
+      Temp := SubWord(RotWord(Temp)) XOR RCon(I div 8)
+    else if (I mod 8 = 4) then
       Temp := SubWord(Temp);
-    ExpandedKey[i] := ExpandedKey[i - 8] XOR Temp;
+    ExpandedKey[I] := ExpandedKey[I - 8] XOR Temp;
   end;
 end;
 
 { Esta función convierte un array de bytes en una cadena hexadecimal }
-function BytesToHex(const Bytes: array of Byte): string;
+function BytesToHexArray(const Bytes: array of Byte): string;
 const
   HexChars: array [0 .. 15] of Char = '0123456789ABCDEF';
 var
-  i: Integer;
+  I: Integer;
 begin
 
-  SetLength(Result, length(Bytes) * 2);
-  for i := 0 to length(Bytes) - 1 do
+  SetLength(Result, Length(Bytes) * 2);
+  for I := 0 to Length(Bytes) - 1 do
   begin
-    Result[i * 2 + 1] := HexChars[Bytes[i] shr 4];
-    Result[i * 2 + 2] := HexChars[Bytes[i] and $0F];
+    Result[I * 2 + 1] := HexChars[Bytes[I] shr 4];
+    Result[I * 2 + 2] := HexChars[Bytes[I] and $0F];
   end;
 end;
 
 { Desencripta contraseña usando AES con clave y algoritmo específicos }
-function DecryptPassword(const EncryptedPassword: string): string;
+function DecryptPassword(const EncryptedPassword, Uniquekey: string): TBytes;
 var
   KeyString: string;
   Key: TAESKey;
@@ -243,11 +359,11 @@ var
   State: TAESState;
   SourceStream, DestStream: TMemoryStream;
 begin
-
   try
     // Configurar la clave (la clave debe ser de 32 caracteres)
-    KeyString := _key;
-    // KeyString := GenerateRandomKey(32);
+    KeyString := Uniquekey;
+    // KeyString := _key;
+
     Key := StringToAESKey(KeyString);
 
     // Expandir la clave
@@ -257,8 +373,8 @@ begin
     InputBytes := HexToBytes(EncryptedPassword);
 
     // Rellenar el bloque de entrada
-    FillChar(State, Sizeof(State), 0);
-    Move(InputBytes[0], State, length(InputBytes));
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
 
     // Crear streams de memoria para el resultado
     SourceStream := TMemoryStream.Create;
@@ -267,28 +383,31 @@ begin
     try
       // Desencriptar el bloque de entrada
       AESDecrypt(State, ExpandedKey);
-      SourceStream.Write(State, Sizeof(State));
+      SourceStream.Write(State, SizeOf(State));
 
       // Copiar el bloque desencriptado al stream de destino
       SourceStream.Position := 0;
       DestStream.CopyFrom(SourceStream, SourceStream.Size);
 
-      // Convertir el bloque desencriptado a una cadena de texto
+      // Convertir el bloque desencriptado a una cadena de texto UTF-8
       SetLength(OutputBytes, DestStream.Size);
       DestStream.Position := 0;
       DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-      Result := TEncoding.UTF8.GetString(OutputBytes);
+      // result := TEncoding.UTF8.GetString(OutputBytes);
+
+      // result := BytesToHexArray(OutputBytes);
+      Result := (OutputBytes)
     finally
       SourceStream.Free;
       DestStream.Free;
     end;
   finally
-
+    // Liberar recursos si es necesario
   end;
 end;
 
 { Encripta contraseña con AES y clave específica, devuelve como hexadecimal }
-function EncryptPassword(const InputPassword: string): string;
+function EncryptPassword(const InputPassword, Uniquekey: string): string;
 var
   KeyString: string;
   Key: TAESKey;
@@ -297,13 +416,12 @@ var
   State: TAESState;
   SourceStream, DestStream: TMemoryStream;
 begin
-  // Crear una instancia de TDmoduloED
-  // ModuloED := TDmoduloED.Create(nil);
 
   try
     // Configurar la clave (la clave debe ser de 32 caracteres)
-    KeyString := _key;
-    // KeyString := GenerateRandomKey(32);
+    KeyString := Uniquekey;
+    // KeyString := _key;
+
     Key := StringToAESKey(KeyString);
 
     // Expandir la clave
@@ -311,10 +429,11 @@ begin
 
     // Convertir la contraseña de entrada a bytes
     InputBytes := TEncoding.UTF8.GetBytes(InputPassword);
+    // InputBytes := HexToBytes(InputPassword);
 
     // Rellenar el bloque de entrada
-    FillChar(State, Sizeof(State), 0);
-    Move(InputBytes[0], State, length(InputBytes));
+    FillChar(State, SizeOf(State), 0);
+    Move(InputBytes[0], State, Length(InputBytes));
 
     // Crear streams de memoria para el resultado
     SourceStream := TMemoryStream.Create;
@@ -323,7 +442,7 @@ begin
     try
       // Encriptar el bloque de entrada
       AESEncrypt(State, ExpandedKey);
-      SourceStream.Write(State, Sizeof(State));
+      SourceStream.Write(State, SizeOf(State));
 
       // Copiar el bloque encriptado al stream de destino
       SourceStream.Position := 0;
@@ -333,7 +452,8 @@ begin
       SetLength(OutputBytes, DestStream.Size);
       DestStream.Position := 0;
       DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-      Result := BytesToHex(OutputBytes);
+      Result := BytesToHexArray(OutputBytes);
+      // Result := BytesToHex(OutputBytes)
     finally
       SourceStream.Free;
       DestStream.Free;
@@ -343,38 +463,76 @@ begin
   end;
 end;
 
-{ Convierte cadena hexadecimal en bytes, verificando longitud válida }
-function HexToBytes(const Hex: string): TBytes;
+{ Convierte cadena  bytes en hexadecimal, verificando longitud válida }
+function BytesToHex(const Bytes: TBytes): string;
+const
+  HexChars: array [0 .. 15] of Char = '0123456789ABCDEF';
 var
-  i: Integer;
+  I: Integer;
 begin
-  if length(Hex) mod 2 <> 0 then
+  SetLength(Result, Length(Bytes) * 2);
+  for I := 0 to Length(Bytes) - 1 do
+  begin
+    Result[I * 2 + 1] := HexChars[Byte(Bytes[I]) shr 4];
+    Result[I * 2 + 2] := HexChars[Byte(Bytes[I]) and $F];
+  end;
+end;
+
+function HexToUTF8(const hex: string): string;
+var
+  I: Integer;
+  hexByte: string;
+  ByteValue: Byte;
+  utf8Bytes: TBytes;
+begin
+  // Asegurarse de que la longitud de la cadena hexadecimal sea par
+  if Length(hex) mod 2 <> 0 then
+    raise Exception.Create('La cadena hexadecimal debe tener una longitud par');
+
+  SetLength(utf8Bytes, Length(hex) div 2);
+
+  for I := 1 to Length(hex) div 2 do
+  begin
+    hexByte := Copy(hex, (I - 1) * 2 + 1, 2);
+    ByteValue := StrToInt('$' + hexByte);
+    utf8Bytes[I - 1] := ByteValue;
+  end;
+
+  Result := TEncoding.UTF8.GetString(utf8Bytes);
+end;
+
+{ Convierte cadena hexadecimal en bytes, verificando longitud válida }
+function HexToBytes(const hex: string): TBytes;
+var
+  I: Integer;
+begin
+  if Length(hex) mod 2 <> 0 then
     raise Exception.Create('Longitud de cadena hexadecimal no válida');
 
-  SetLength(Result, length(Hex) div 2);
+  SetLength(Result, Length(hex) div 2);
 
-  for i := 1 to length(Hex) div 2 do
-    Result[i - 1] := StrToInt('$' + Copy(Hex, (i - 1) * 2 + 1, 2));
+  for I := 1 to Length(hex) div 2 do
+    Result[I - 1] := StrToInt('$' + Copy(hex, (I - 1) * 2 + 1, 2));
 end;
 
 { Este procedimiento deshace la transformación "MixColumns" en AES, revirtiendo
   la mezcla de columnas en el estado }
 procedure InvMixColumns(var State: TAESState);
 var
-  i, j: Integer;
+  I, J: Integer;
   m: Array [0 .. 3] of Byte;
 begin
-  for i := 0 to 3 do
+  for I := 0 to 3 do
   begin
-    for j := 0 to 3 do
-      m[j] := State[i, j];
-    State[i, 0] := Mult($0E, m[0]) XOR Mult($0B, m[1]) XOR Mult($0D, m[2])
+    for J := 0 to 3 do
+      m[J] := State[I, J];
+    State[I, 0] := Mult($0E, m[0]) XOR Mult($0B, m[1]) XOR Mult($0D, m[2])
       XOR Mult($09, m[3]);
-    State[i, 1] := Mult($09, m[0]) XOR Mult($0E, m[1]) XOR Mult($0B, m[2])
+    State[I, 1] := Mult($09, m[0]) XOR Mult($0E, m[1]) XOR Mult($0B, m[2])
       XOR Mult($0D, m[3]);
-    State[i, 2] := Mult($0D, m[0]) XOR Mult($09, m[1]) XOR Mult($0E, m[2])
+    State[I, 2] := Mult($0D, m[0]) XOR Mult($09, m[1]) XOR Mult($0E, m[2])
       XOR Mult($0B, m[3]);
-    State[i, 3] := Mult($0B, m[0]) XOR Mult($0D, m[1]) XOR Mult($09, m[2])
+    State[I, 3] := Mult($0B, m[0]) XOR Mult($0D, m[1]) XOR Mult($09, m[2])
       XOR Mult($0E, m[3]);
   end;
 end;
@@ -383,16 +541,16 @@ end;
   estado en el algoritmo AES }
 procedure InvShiftRows(var State: TAESState);
 var
-  i, j, k: Integer;
+  I, J, K: Integer;
 begin
-  for j := 1 to 3 do
-    for i := j downto 1 do
+  for J := 1 to 3 do
+    for I := J downto 1 do
     begin
-      k := State[3, j];
-      State[3, j] := State[2, j];
-      State[2, j] := State[1, j];
-      State[1, j] := State[0, j];
-      State[0, j] := k;
+      K := State[3, J];
+      State[3, J] := State[2, J];
+      State[2, J] := State[1, J];
+      State[1, J] := State[0, J];
+      State[0, J] := K;
     end;
 end;
 
@@ -400,11 +558,11 @@ end;
   utilizando la tabla InvSbox en el algoritmo AES }
 procedure InvSubBytes(var State: TAESState);
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
-  for i := 0 to 3 do
-    for j := 0 to 3 do
-      State[i, j] := InvSbox[State[i, j]];
+  for I := 0 to 3 do
+    for J := 0 to 3 do
+      State[I, J] := InvSbox[State[I, J]];
 end;
 
 { Este procedimiento realiza la operación de mezcla de columnas en el estado
@@ -413,17 +571,17 @@ end;
   AES }
 procedure MixColumns(var State: TAESState);
 var
-  i, j: Integer;
+  I, J: Integer;
   m: Array [0 .. 3] of Byte;
 begin
-  for i := 0 to 3 do
+  for I := 0 to 3 do
   begin
-    for j := 0 to 3 do
-      m[j] := State[i, j];
-    State[i, 0] := Mult(2, m[0]) XOR Mult(3, m[1]) XOR m[2] XOR m[3];
-    State[i, 1] := m[0] XOR Mult(2, m[1]) XOR Mult(3, m[2]) XOR m[3];
-    State[i, 2] := m[0] XOR m[1] XOR Mult(2, m[2]) XOR Mult(3, m[3]);
-    State[i, 3] := Mult(3, m[0]) XOR m[1] XOR m[2] XOR Mult(2, m[3]);
+    for J := 0 to 3 do
+      m[J] := State[I, J];
+    State[I, 0] := Mult(2, m[0]) XOR Mult(3, m[1]) XOR m[2] XOR m[3];
+    State[I, 1] := m[0] XOR Mult(2, m[1]) XOR Mult(3, m[2]) XOR m[3];
+    State[I, 2] := m[0] XOR m[1] XOR Mult(2, m[2]) XOR Mult(3, m[3]);
+    State[I, 3] := Mult(3, m[0]) XOR m[1] XOR m[2] XOR Mult(2, m[3]);
   end;
 end;
 
@@ -462,16 +620,16 @@ end;
   desplazan hacia la izquierda en un patrón específico }
 procedure ShiftRows(var State: TAESState);
 var
-  i, j, k: Integer;
+  I, J, K: Integer;
 begin
-  for j := 1 to 3 do
-    for i := j downto 1 do
+  for J := 1 to 3 do
+    for I := J downto 1 do
     begin
-      k := State[0, j];
-      State[0, j] := State[1, j];
-      State[1, j] := State[2, j];
-      State[2, j] := State[3, j];
-      State[3, j] := k;
+      K := State[0, J];
+      State[0, J] := State[1, J];
+      State[1, J] := State[2, J];
+      State[2, J] := State[3, J];
+      State[3, J] := K;
     end;
 end;
 
@@ -479,21 +637,21 @@ function StringToAESKey(const KeyString: string): TAESKey;
 var
   KeyBytes: TBytes;
   KeyLength: Integer;
-  i: Integer;
+  I: Integer;
 begin
-  KeyLength := length(KeyString);
+  KeyLength := Length(KeyString);
   SetLength(KeyBytes, KeyLength);
 
   // Convertir el string en bytes
-  for i := 1 to KeyLength do
-    KeyBytes[i - 1] := Ord(KeyString[i]);
+  for I := 1 to KeyLength do
+    KeyBytes[I - 1] := Ord(KeyString[I]);
 
   // Rellenar la clave si es necesario (debe ser de 32 bytes)
-  while length(KeyBytes) < 32 do
+  while Length(KeyBytes) < 32 do
     KeyBytes := KeyBytes + KeyBytes;
 
   // Copiar los primeros 32 bytes como clave
-  Move(KeyBytes[0], Result[0], Sizeof(Result));
+  Move(KeyBytes[0], Result[0], SizeOf(Result));
 end;
 
 { Esta función toma una cadena de texto KeyString, la convierte en una clave
@@ -501,11 +659,11 @@ end;
   luego la devuelve como resultado }
 procedure SubBytes(var State: TAESState);
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
-  for i := 0 to 3 do
-    for j := 0 to 3 do
-      State[i, j] := Sbox[State[i, j]]
+  for I := 0 to 3 do
+    for J := 0 to 3 do
+      State[I, J] := Sbox[State[I, J]]
 end;
 
 { Sustituye una palabra de 32 bits con Sbox de AES y retorna el resultado }
@@ -516,15 +674,23 @@ begin
 end;
 
 function GenerateRandomKey(l: Integer): string;
-const
-  ValidChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 var
-  i: Integer;
+  SaltBytes: TBytes;
+  I: Integer;
 begin
-  Randomize;
-  Result := '';
-  for i := 1 to l do
-    Result := Result + ValidChars[Random(length(ValidChars)) + 1];
+
+  SetLength(SaltBytes, l);
+
+  // Genera una sal aleatoria en forma de matriz de bytes
+  for I := 0 to l - 1 do
+    SaltBytes[I] := Byte(Random(256));
+
+  // Convierte la matriz de bytes utilizando Sbox
+  for I := 0 to l - 1 do
+    SaltBytes[I] := Sbox[SaltBytes[I]];
+
+  // Convierte los bytes en una cadena hexadecimal
+  Result := BytesToHex(SaltBytes);
 end;
 
 end.

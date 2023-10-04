@@ -98,14 +98,10 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="MEncryptDecryptAES.pas"/>
         <DCCReference Include="Frm_EncryptDecryptAES.pas">
             <Form>FrmEncryptDecryptAES</Form>
             <FormType>dfm</FormType>
-        </DCCReference>
-        <DCCReference Include="D_moduloED.pas">
-            <Form>DmoduloED</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

@@ -10,11 +10,34 @@ uses
 type
   TFrmEncryptDecryptAES = class(TForm)
     PnInferior: TPanel;
-    LbE: TLabel;
     LbD: TLabel;
-    BtnGuardar: TButton;
+    BtnValidar: TButton;
     EdtPass: TEdit;
-    procedure BtnGuardarClick(Sender: TObject);
+    Panel1: TPanel;
+    Label1: TLabel;
+    Panel2: TPanel;
+    Label3: TLabel;
+    Panel3: TPanel;
+    Label4: TLabel;
+    Panel4: TPanel;
+    Label5: TLabel;
+    Panel5: TPanel;
+    Label6: TLabel;
+    EdtSha: TEdit;
+    EdtKey: TEdit;
+    EdtEncrypt: TEdit;
+    EdtDecrypt: TEdit;
+    Panel6: TPanel;
+    Label2: TLabel;
+    EdtSha2: TEdit;
+    Panel7: TPanel;
+    Label7: TLabel;
+    EdtSalt: TEdit;
+    BtnComparar: TButton;
+    EdtPass2: TEdit;
+    LbVerificacion: TLabel;
+    procedure BtnValidarClick(Sender: TObject);
+    procedure BtnCompararClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -28,9 +51,26 @@ implementation
 
 {$R *.dfm}
 
-uses D_moduloED;
+uses MEncryptDecryptAES;
 
-procedure TFrmEncryptDecryptAES.BtnGuardarClick(Sender: TObject);
+procedure TFrmEncryptDecryptAES.BtnCompararClick(Sender: TObject);
+begin
+
+  EdtSha2.Text := calcularHash(EdtPass2.Text, EdtSalt.Text);
+
+  if verifyHash(EdtSha2.Text, EdtSalt.Text, EdtDecrypt.Text) then
+  begin
+    LbVerificacion.Caption := 'true';
+  end
+  else
+  begin
+    LbVerificacion.Caption := 'false';
+  end;
+end;
+
+procedure TFrmEncryptDecryptAES.BtnValidarClick(Sender: TObject);
+var
+  e: string;
 begin
   case EdtPass.Text = '' of
     true:
@@ -41,11 +81,25 @@ begin
     false:
       begin
 
-        with DmoduloED do
-        begin
-          LbE.Caption := EncryptPassword(EdtPass.Text);
-          LbD.Caption := DecryptPassword(LbE.Caption);
-        end;
+        LbD.Caption := EdtPass.Text;
+        EdtSalt.Text := GenerateSalt(32);
+        EdtSha.Text := calcularHash(EdtPass.Text, EdtSalt.Text);
+        EdtKey.Text := GenerateRandomKey(32);
+        EdtEncrypt.Text := EncryptPassword(EdtSha.Text, EdtKey.Text);
+        EdtDecrypt.Text := BytesToHex(DecryptPassword(EdtEncrypt.Text,
+          EdtKey.Text));
+
+        EdtPass2.Enabled := true;
+        BtnComparar.Enabled := true;
+        EdtSha2.Enabled := true;
+        LbVerificacion.Enabled := true;
+
+        {
+          e := EncryptPassword(EdtPass.Text, EdtKey.Text);
+          ShowMessage('E:=' + EncryptPassword(EdtPass.Text, EdtKey.Text));
+          ShowMessage(' D:=' + TEncoding.UTF8.GetString(DecryptPassword(e,
+          EdtKey.Text))); }
+
       end;
   end;
 
