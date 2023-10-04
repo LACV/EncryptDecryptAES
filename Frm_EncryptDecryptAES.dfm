@@ -28,7 +28,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Left = 31
       Top = 573
       Width = 120
-      Height = 25
+      Height = 24
       Margins.Left = 30
       Margins.Top = 15
       Margins.Right = 5
@@ -44,7 +44,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Font.Style = [fsBold]
       ParentFont = False
       WordWrap = True
-      ExplicitHeight = 24
     end
     object BtnValidar: TButton
       AlignWithMargins = True
@@ -106,7 +105,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 95
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -121,7 +120,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
       object EdtEncrypt: TEdit
         AlignWithMargins = True
@@ -147,7 +145,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 92
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -162,14 +160,13 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
       object LbD: TLabel
         AlignWithMargins = True
         Left = 177
         Top = 15
         Width = 11
-        Height = 20
+        Height = 18
         Margins.Left = 50
         Margins.Top = 15
         Margins.Right = 30
@@ -183,7 +180,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
     end
     object Panel3: TPanel
@@ -199,7 +195,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 66
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -213,7 +209,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
       object EdtSha: TEdit
         AlignWithMargins = True
@@ -239,7 +234,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 79
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -254,8 +249,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitLeft = 46
-        ExplicitHeight = 18
       end
       object EdtKey: TEdit
         AlignWithMargins = True
@@ -281,7 +274,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 97
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -296,7 +289,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
       object EdtDecrypt: TEdit
         AlignWithMargins = True
@@ -322,7 +314,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 35
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -337,8 +329,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitLeft = 87
-        ExplicitHeight = 18
       end
       object EdtSalt: TEdit
         AlignWithMargins = True
@@ -364,7 +354,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 61
-        Height = 20
+        Height = 18
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -379,7 +369,6 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
-        ExplicitHeight = 18
       end
       object EdtSha2: TEdit
         AlignWithMargins = True
