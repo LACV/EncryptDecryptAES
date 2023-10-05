@@ -28,7 +28,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Left = 31
       Top = 573
       Width = 120
-      Height = 24
+      Height = 25
       Margins.Left = 30
       Margins.Top = 15
       Margins.Right = 5
@@ -44,6 +44,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       Font.Style = [fsBold]
       ParentFont = False
       WordWrap = True
+      ExplicitHeight = 24
     end
     object BtnValidar: TButton
       AlignWithMargins = True
@@ -102,15 +103,15 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       TabOrder = 2
       object Label1: TLabel
         AlignWithMargins = True
-        Left = 30
+        Left = -184
         Top = 15
-        Width = 95
-        Height = 18
+        Width = 300
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
         Margins.Bottom = 10
-        Align = alLeft
+        Align = alRight
         Alignment = taRightJustify
         Caption = 'AES Encrypt:'
         Font.Charset = DEFAULT_CHARSET
@@ -120,16 +121,17 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = -75
       end
       object EdtEncrypt: TEdit
         AlignWithMargins = True
-        Left = 133
+        Left = 124
         Top = 3
-        Width = 611
+        Width = 620
         Height = 39
-        Align = alClient
+        Align = alRight
         TabOrder = 0
-        ExplicitHeight = 21
+        ExplicitLeft = 144
       end
     end
     object Panel2: TPanel
@@ -145,7 +147,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 92
-        Height = 18
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -160,13 +162,14 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitHeight = 18
       end
       object LbD: TLabel
         AlignWithMargins = True
         Left = 177
         Top = 15
         Width = 11
-        Height = 18
+        Height = 20
         Margins.Left = 50
         Margins.Top = 15
         Margins.Right = 30
@@ -180,6 +183,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitHeight = 18
       end
     end
     object Panel3: TPanel
@@ -192,15 +196,15 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       TabOrder = 4
       object Label4: TLabel
         AlignWithMargins = True
-        Left = 30
+        Left = 44
         Top = 15
-        Width = 66
-        Height = 18
+        Width = 72
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
         Margins.Bottom = 10
-        Align = alLeft
+        Align = alRight
         Caption = 'SHA256:'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clBlack
@@ -209,16 +213,17 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = -7
       end
       object EdtSha: TEdit
         AlignWithMargins = True
-        Left = 104
+        Left = 124
         Top = 3
-        Width = 640
+        Width = 620
         Height = 39
-        Align = alClient
+        Align = alRight
         TabOrder = 0
-        ExplicitHeight = 21
+        ExplicitLeft = 144
       end
     end
     object Panel4: TPanel
@@ -231,15 +236,15 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       TabOrder = 5
       object Label5: TLabel
         AlignWithMargins = True
-        Left = 30
+        Left = -184
         Top = 15
-        Width = 79
-        Height = 18
+        Width = 300
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
         Margins.Bottom = 10
-        Align = alLeft
+        Align = alRight
         Alignment = taRightJustify
         Caption = 'Key Unica:'
         Font.Charset = DEFAULT_CHARSET
@@ -249,16 +254,17 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = -91
       end
       object EdtKey: TEdit
         AlignWithMargins = True
-        Left = 117
+        Left = 124
         Top = 3
-        Width = 627
+        Width = 620
         Height = 39
-        Align = alClient
+        Align = alRight
         TabOrder = 0
-        ExplicitHeight = 21
+        ExplicitLeft = 144
       end
     end
     object Panel5: TPanel
@@ -271,15 +277,15 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       TabOrder = 6
       object Label6: TLabel
         AlignWithMargins = True
-        Left = 30
+        Left = -184
         Top = 15
-        Width = 97
-        Height = 18
+        Width = 300
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
         Margins.Bottom = 10
-        Align = alLeft
+        Align = alRight
         Alignment = taRightJustify
         Caption = 'AES Decrypt:'
         Font.Charset = DEFAULT_CHARSET
@@ -289,16 +295,17 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = -73
       end
       object EdtDecrypt: TEdit
         AlignWithMargins = True
-        Left = 135
+        Left = 124
         Top = 3
-        Width = 609
+        Width = 620
         Height = 39
-        Align = alClient
+        Align = alRight
         TabOrder = 0
-        ExplicitHeight = 21
+        ExplicitLeft = 144
       end
     end
     object Panel7: TPanel
@@ -311,15 +318,15 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
       TabOrder = 7
       object Label7: TLabel
         AlignWithMargins = True
-        Left = 30
+        Left = -184
         Top = 15
-        Width = 35
-        Height = 18
+        Width = 300
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
         Margins.Bottom = 10
-        Align = alLeft
+        Align = alRight
         Alignment = taRightJustify
         Caption = 'Salt:'
         Font.Charset = DEFAULT_CHARSET
@@ -329,16 +336,17 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitLeft = -135
       end
       object EdtSalt: TEdit
         AlignWithMargins = True
-        Left = 73
+        Left = 124
         Top = 3
-        Width = 671
+        Width = 620
         Height = 39
-        Align = alClient
+        Align = alRight
         TabOrder = 0
-        ExplicitHeight = 21
+        ExplicitLeft = 144
       end
     end
     object Panel6: TPanel
@@ -354,7 +362,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Left = 30
         Top = 15
         Width = 61
-        Height = 18
+        Height = 20
         Margins.Left = 30
         Margins.Top = 15
         Margins.Right = 5
@@ -369,6 +377,7 @@ object FrmEncryptDecryptAES: TFrmEncryptDecryptAES
         Font.Style = [fsBold]
         ParentFont = False
         WordWrap = True
+        ExplicitHeight = 18
       end
       object EdtSha2: TEdit
         AlignWithMargins = True

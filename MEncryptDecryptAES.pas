@@ -7,7 +7,8 @@ uses
   System.Generics.Collections, Vcl.Dialogs;
 
 type
-  TAESState = Array [0 .. 3, 0 .. 3] of Byte;
+  // TAESState = Array [0 .. 3, 0 .. 3] of Byte;
+  TAESState = array [0 .. 31] of Byte;
   TAESKey = Array [0 .. 7] of Cardinal;
   TAESExpandedKey = Array [0 .. 59] of Cardinal; // 59
 
@@ -20,7 +21,8 @@ function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 function CalculateHash(const pass, Salt: string): string;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
 
-// funciones necesarias para encriptar y desencriptar en AES
+function AddPKCS7Padding(var Data: TBytes): TBytes;
+function RemovePKCS7Padding(var Data: TBytes): TBytes;
 
 // Hash - SHA256(GenerateSalt)
 function BytesToHex(const Bytes: TBytes): string;
@@ -29,9 +31,11 @@ function GenerateSalt(SaltLength: Integer): string;
 function PBKDF2(const Password: string; Salt: TBytes;
   Iterations: Integer): TBytes;
 
+// funciones necesarias para encriptar y desencriptar en AES
+
 // AES Encrypt (SubBytes,ShiftRows,MixColumns,AddRoundKey,BytesToHex)
 procedure AESEncrypt(var State: TAESState; ExpandedKey: TAESExpandedKey);
-procedure SubBytes(var State: TAESState);
+procedure SubBytes(var State: array of Byte);
 procedure ShiftRows(var State: TAESState);
 procedure MixColumns(var State: TAESState);
 procedure InvMixColumns(var State: TAESState);
@@ -242,7 +246,7 @@ begin
     // Create an instance of the HMAC-SHA-256 hash algorithm
     HMACSHA256 := THashSHA2.Create(THashSHA2.TSHA2Version.SHA256);
     // Set the desired key length (32 bytes)
-    DKLen := 16;
+    DKLen := 32;
     // Convert the password to bytes using UTF-8 encoding
     Key := TEncoding.UTF8.GetBytes(Password);
 
@@ -305,17 +309,15 @@ end;
 procedure AddRoundKey(var State: TAESState; ExpandedKey: TAESExpandedKey;
   Round: Integer);
 var
-  I: Integer;
-  W: Cardinal;
+  I, Offset: Integer;
 begin
+  // Calculate the offset for the round key in ExpandedKey
+  Offset := Round * 32; // Since each round key is 32 bytes (256 bits)
+
   // Apply XOR operation between state and round key
-  for I := 0 to 3 do
+  for I := 0 to 31 do
   begin
-    W := ExpandedKey[(Round * 4) + I];
-    State[I, 0] := State[I, 0] XOR ((W shr 24) and $FF);
-    State[I, 1] := State[I, 1] XOR ((W shr 16) and $FF);
-    State[I, 2] := State[I, 2] XOR ((W shr 8) and $FF);
-    State[I, 3] := State[I, 3] XOR (W and $FF);
+    State[I] := State[I] XOR ExpandedKey[Offset + I];
   end;
 end;
 
@@ -369,6 +371,79 @@ begin
   SubBytes(State);
   ShiftRows(State);
   AddRoundKey(State, ExpandedKey, 14);
+end;
+
+function AddPKCS7Padding(var Data: TBytes): TBytes;
+var
+  PaddingByte: Byte;
+  PaddingSize, NewLength, I: Integer;
+  PaddedData: TBytes;
+begin
+  // Verificar si ya es un múltiplo del tamaño de bloque (32 bytes)
+  if (Length(Data) mod 32) = 32 then
+  begin
+    Result := Data;
+    ShowMessage('n32 ' + BytesToHex(Data));
+  end
+  else
+  begin
+    PaddingSize := 32 - (Length(Data) mod 32);
+    PaddingByte := Byte(PaddingSize);
+
+    NewLength := Length(Data) + PaddingSize;
+    SetLength(PaddedData, NewLength);
+
+    for I := 0 to Length(Data) - 1 do
+      PaddedData[I] := Data[I];
+
+    // Agregar el relleno PKCS#7
+    for I := Length(Data) to NewLength - 1 do
+      PaddedData[I] := PaddingByte;
+
+    ShowMessage('s32 ' + BytesToHex(PaddedData));
+    Result := PaddedData;
+
+  end;
+
+end;
+
+function RemovePKCS7Padding(var Data: TBytes): TBytes;
+var
+  PaddingLength, I: Integer;
+  OriginalLength: Integer;
+begin
+
+  ShowMessage('dE:' + BytesToHex(Data));
+  // Obtener la longitud original de los datos antes del relleno
+  OriginalLength := Length(Data);
+
+  // Verificar que los datos tengan al menos un byte
+  if OriginalLength < 1 then
+    Exit(Data); // Devuelve los datos originales sin cambios
+
+  // Obtener la longitud del relleno desde el último byte
+  PaddingLength := Data[High(Data)];
+
+  // Verificar que la longitud del relleno sea válida
+  if (PaddingLength >= 1) and (PaddingLength <= OriginalLength) then
+  begin
+    // Verificar que los bytes de relleno sean idénticos
+    for I := High(Data) downto High(Data) - PaddingLength + 1 do
+    begin
+      if Data[I] <> PaddingLength then
+        Exit(Data);
+      // Devuelve los datos originales sin cambios, ya que el relleno no es válido
+    end;
+    ShowMessage('dE2:' + BytesToHex(Data));
+    // Eliminar el relleno y devolver los datos sin relleno
+    SetLength(Data, OriginalLength - PaddingLength);
+    Result := Data;
+  end
+  else
+  begin
+    // En caso de relleno no válido, se devuelven los datos originales sin cambios
+    Result := Data;
+  end;
 end;
 
 {
@@ -466,7 +541,7 @@ begin
     SetLength(OutputBytes, DestStream.Size);
     DestStream.Position := 0;
     DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-    Result := TEncoding.UTF8.GetString(OutputBytes);
+    Result := HexToUTF8(BytesToHexArray(OutputBytes));
   finally
     SourceStream.Free;
     DestStream.Free;
@@ -483,19 +558,14 @@ var
   State: TAESState;
   SourceStream, DestStream: TMemoryStream;
 begin
-  // Configurar la clave (la clave debe ser de 32 caracteres)
-  KeyString := Uniquekey;
 
-  Key := StringToAESKey(KeyString);
+  Key := StringToAESKey(Uniquekey);
 
   // Expandir la clave
   AESExpandKey(ExpandedKey, Key);
 
   // Convertir el valor hexadecimal de entrada a bytes
   InputBytes := HexToBytes(EncryptedHash);
-
-  // Asegurarse de que InputBytes tenga 64 bytes
-  SetLength(InputBytes, 64);
 
   // Crear streams de memoria para el resultado
   SourceStream := TMemoryStream.Create;
@@ -519,6 +589,11 @@ begin
     DestStream.Position := 0;
     DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
 
+    // Result := BytesToHexArray(OutputBytes);
+
+    // Eliminar el relleno PKCS#7 después de descifrar
+    // OutputBytes := RemovePKCS7Padding(OutputBytes);
+
     Result := BytesToHexArray(OutputBytes);
   finally
     SourceStream.Free;
@@ -535,10 +610,9 @@ var
   Key: TAESKey;
   ExpandedKey: TAESExpandedKey;
   InputBytes, OutputBytes: TBytes;
-  State: TAESState;
+  State: TAESState; // Estado de 256 bits
   SourceStream, DestStream: TMemoryStream;
 begin
-
   try
     // Set the key (the key should be 32 characters long)
     KeyString := Uniquekey;
@@ -552,57 +626,48 @@ begin
     // Convert the input password to bytes using UTF-8 encoding
     InputBytes := TEncoding.UTF8.GetBytes(InputPassword);
 
-    // Initialize the input state with zeros
-    FillChar(State, SizeOf(State), 0);
+    // Asegurarse de que la longitud de la cadena de entrada sea par agregando un carácter de relleno en cero si es necesario
+    if Length(InputBytes) mod 2 <> 0 then
+      InputBytes := InputBytes + [0]; // Agregar un byte en cero al final
 
-    // Copy the input bytes to the state
-    Move(InputBytes[0], State, Length(InputBytes));
+    // Inicializar el estado de entrada con ceros para asegurar 256 bits
+    FillChar(State[0], SizeOf(State), 0);
 
-    // Create memory streams for the result
-    SourceStream := TMemoryStream.Create;
-    DestStream := TMemoryStream.Create;
+    // Copiar los bytes de entrada al estado, limitándolo a 256 bits
+    if Length(InputBytes) < 32 then
+      Move(InputBytes[0], State[0], Length(InputBytes))
+    else
+      Move(InputBytes[0], State[0], 32);
 
-    try
-      // Encriptar el bloque de entrada
-      AESEncrypt(State, ExpandedKey);
-      SourceStream.Write(State, SizeOf(State));
+    // Encriptar el bloque de entrada
+    AESEncrypt(State, ExpandedKey);
 
-      // Copiar el bloque encriptado al stream de destino
-      SourceStream.Position := 0;
-      DestStream.CopyFrom(SourceStream, SourceStream.Size);
+    // Convertir el resultado en un arreglo de bytes
+    SetLength(OutputBytes, SizeOf(State));
+    Move(State[0], OutputBytes[1], SizeOf(State));
 
-      // Convertir el bloque encriptado a una cadena hexadecimal
-      SetLength(OutputBytes, DestStream.Size);
-      DestStream.Position := 0;
-      DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-      Result := BytesToHexArray(OutputBytes);
-      // Result := BytesToHex(OutputBytes)
-    finally
-      SourceStream.Free;
-      DestStream.Free;
-    end;
+    // Convertir el arreglo de bytes a una cadena hexadecimal
+    Result := BytesToHexArray(OutputBytes);
+
   except
     on E: Exception do
     begin
-      // Handle exceptions and provide a meaningful error message
-      raise Exception.Create('Error in EncryptPassword: ' + E.Message);
+      // Manejar excepciones y proporcionar un mensaje de error significativo
+      raise Exception.Create('Error en EncryptPassword: ' + E.Message);
     end;
   end;
 end;
 
 function EncryptHash(const InputHash, Uniquekey: string): string;
 var
-  KeyString: string;
   Key: TAESKey;
   ExpandedKey: TAESExpandedKey;
   InputBytes, OutputBytes: TBytes;
   State: TAESState;
   SourceStream, DestStream: TMemoryStream;
 begin
-  // Configurar la clave (la clave debe ser de 32 caracteres)
-  KeyString := Uniquekey;
 
-  Key := StringToAESKey(KeyString);
+  Key := StringToAESKey(Uniquekey);
 
   // Expandir la clave
   AESExpandKey(ExpandedKey, Key);
@@ -610,8 +675,10 @@ begin
   // Convertir el valor hexadecimal de entrada a bytes
   InputBytes := HexToBytes(InputHash);
 
-  // Asegurarse de que InputBytes tenga 64 bytes
-  SetLength(InputBytes, 64);
+  // Aplicar relleno PKCS#7 si es necesario
+  // InputBytes := AddPKCS7Padding(InputBytes);
+
+  ShowMessage('HexE: ' + BytesToHexArray(InputBytes));
 
   // Crear streams de memoria para el resultado
   SourceStream := TMemoryStream.Create;
@@ -634,7 +701,8 @@ begin
     SetLength(OutputBytes, DestStream.Size);
     DestStream.Position := 0;
     DestStream.ReadBuffer(OutputBytes[0], DestStream.Size);
-    Result := BytesToHex(OutputBytes); // Cambio aquí
+    ShowMessage('rEn: ' + BytesToHexArray(OutputBytes));
+    Result := BytesToHexArray(OutputBytes);
   finally
     SourceStream.Free;
     DestStream.Free;
@@ -710,22 +778,25 @@ end;
 }
 procedure InvMixColumns(var State: TAESState);
 var
-  I, J: Integer;
-  m: Array [0 .. 3] of Byte;
+  I: Integer;
+  m: array [0 .. 3] of Byte;
 begin
   for I := 0 to 3 do
   begin
     // Store the current column in a temporary array
-    for J := 0 to 3 do
-      // Apply the inverse MixColumns transformation
-      m[J] := State[I, J];
-    State[I, 0] := Mult($0E, m[0]) XOR Mult($0B, m[1]) XOR Mult($0D, m[2])
+    m[0] := State[I * 8];
+    m[1] := State[I * 8 + 1];
+    m[2] := State[I * 8 + 2];
+    m[3] := State[I * 8 + 3];
+
+    // Apply the inverse MixColumns transformation
+    State[I * 8] := Mult($0E, m[0]) XOR Mult($0B, m[1]) XOR Mult($0D, m[2])
       XOR Mult($09, m[3]);
-    State[I, 1] := Mult($09, m[0]) XOR Mult($0E, m[1]) XOR Mult($0B, m[2])
+    State[I * 8 + 1] := Mult($09, m[0]) XOR Mult($0E, m[1]) XOR Mult($0B, m[2])
       XOR Mult($0D, m[3]);
-    State[I, 2] := Mult($0D, m[0]) XOR Mult($09, m[1]) XOR Mult($0E, m[2])
+    State[I * 8 + 2] := Mult($0D, m[0]) XOR Mult($09, m[1]) XOR Mult($0E, m[2])
       XOR Mult($0B, m[3]);
-    State[I, 3] := Mult($0B, m[0]) XOR Mult($0D, m[1]) XOR Mult($09, m[2])
+    State[I * 8 + 3] := Mult($0B, m[0]) XOR Mult($0D, m[1]) XOR Mult($09, m[2])
       XOR Mult($0E, m[3]);
   end;
 end;
@@ -735,17 +806,17 @@ end;
 }
 procedure InvShiftRows(var State: TAESState);
 var
-  I, J, K: Integer;
+  J, K: Integer;
 begin
   for J := 1 to 3 do
-    for I := J downto 1 do
-    begin
-      K := State[3, J];
-      State[3, J] := State[2, J];
-      State[2, J] := State[1, J];
-      State[1, J] := State[0, J];
-      State[0, J] := K;
-    end;
+  begin
+    // Rotar las filas hacia la derecha
+    K := State[J * 8 + 3];
+    State[J * 8 + 3] := State[J * 8 + 2];
+    State[J * 8 + 2] := State[J * 8 + 1];
+    State[J * 8 + 1] := State[J * 8];
+    State[J * 8] := K;
+  end;
 end;
 
 {
@@ -758,7 +829,7 @@ var
 begin
   for I := 0 to 3 do
     for J := 0 to 3 do
-      State[I, J] := InvSbox[State[I, J]];
+      State[I * 8 + J] := InvSbox[State[I * 8 + J]];
 end;
 
 {
@@ -769,16 +840,19 @@ end;
 procedure MixColumns(var State: TAESState);
 var
   I, J: Integer;
-  m: Array [0 .. 3] of Byte;
+  m: array [0 .. 3] of Byte;
 begin
   for I := 0 to 3 do
   begin
+    // Store the current column in a temporary array
     for J := 0 to 3 do
-      m[J] := State[I, J];
-    State[I, 0] := Mult(2, m[0]) XOR Mult(3, m[1]) XOR m[2] XOR m[3];
-    State[I, 1] := m[0] XOR Mult(2, m[1]) XOR Mult(3, m[2]) XOR m[3];
-    State[I, 2] := m[0] XOR m[1] XOR Mult(2, m[2]) XOR Mult(3, m[3]);
-    State[I, 3] := Mult(3, m[0]) XOR m[1] XOR m[2] XOR Mult(2, m[3]);
+      m[J] := State[I * 8 + J];
+
+    // Apply the MixColumns transformation
+    State[I * 8] := Mult(2, m[0]) XOR Mult(3, m[1]) XOR m[2] XOR m[3];
+    State[I * 8 + 1] := m[0] XOR Mult(2, m[1]) XOR Mult(3, m[2]) XOR m[3];
+    State[I * 8 + 2] := m[0] XOR m[1] XOR Mult(2, m[2]) XOR Mult(3, m[3]);
+    State[I * 8 + 3] := Mult(3, m[0]) XOR m[1] XOR m[2] XOR Mult(2, m[3]);
   end;
 end;
 
@@ -824,17 +898,17 @@ end;
 }
 procedure ShiftRows(var State: TAESState);
 var
-  I, J, K: Integer;
+  J, K: Integer;
 begin
   for J := 1 to 3 do
-    for I := J downto 1 do
-    begin
-      K := State[0, J];
-      State[0, J] := State[1, J];
-      State[1, J] := State[2, J];
-      State[2, J] := State[3, J];
-      State[3, J] := K;
-    end;
+  begin
+    // Rotar las filas hacia la izquierda
+    K := State[J * 8];
+    State[J * 8] := State[J * 8 + 1];
+    State[J * 8 + 1] := State[J * 8 + 2];
+    State[J * 8 + 2] := State[J * 8 + 3];
+    State[J * 8 + 3] := K;
+  end;
 end;
 
 {
@@ -865,13 +939,12 @@ end;
   This procedure performs the SubBytes operation on the AES state.
   It substitutes each byte in the state with its corresponding value from the Sbox.
 }
-procedure SubBytes(var State: TAESState);
+procedure SubBytes(var State: array of Byte); overload;
 var
   I, J: Integer;
 begin
-  for I := 0 to 3 do
-    for J := 0 to 3 do
-      State[I, J] := Sbox[State[I, J]]
+  for I := 0 to 31 do
+    State[I] := Sbox[State[I]];
 end;
 
 {
