@@ -71,7 +71,7 @@ To use this library in your Delphi project, follow these steps:
 
 ## License
 
--
+This project is licensed under the MIT License. You are free to use and modify it for your own purposes.
 
 ## Acknowledgments
 
