@@ -11,7 +11,7 @@ type
   TAESKey = Array [0 .. 7] of Cardinal;
   TAESExpandedKey = Array [0 .. 59] of Cardinal; // 59
 
-  // funciones para encriptar y desencriptar
+  // Functions for encryption and decryption
 function EncryptPassword(const InputPassword, Uniquekey: string): string;
 function DecryptPassword(const EncryptedPassword, Uniquekey: string): string;
 function EncryptHash(const InputHash, Uniquekey: string): string;
@@ -20,7 +20,7 @@ function DecryptHash(const EncryptedHash, Uniquekey: string): string;
 function CalculateHash(const pass, Salt: string): string;
 function verifyHash(const pass, storedSalt, storedHash: string): Boolean;
 
-// funciones necesarias para encriptar y desencriptar en AES
+// Functions necessary for AES encryption and decryption
 
 // Hash - SHA256(GenerateSalt)
 function BytesToHex(const Bytes: TBytes): string;
@@ -43,7 +43,7 @@ procedure InvShiftRows(var State: TAESState);
 procedure InvSubBytes(var State: TAESState);
 function HexToBytes(const hex: string): TBytes;
 
-// Uso General
+// General Use
 function GenerateRandomKey(l: Integer): string;
 procedure AddRoundKey(var State: TAESState; ExpandedKey: TAESExpandedKey;
   Round: Integer);
